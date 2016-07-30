@@ -1,66 +1,99 @@
 # coding=UTF-8
-"""
-Created on 15.06.2016
+import json  # Представляет словарь в строку
+import os  # Для проверки на существование файла
+import requests  # Для осуществления запросов
+import urllib  # Для загрузки картинки с сервера
+from io import BytesIO  # Для отправки картинки к пользователю
+import time  # Представляет время в читаемый формат
+import vk
 
-@author: A. Plistik
-"""
 
-from threading import Thread
+
 from settings import settings
-from URLParser import URLParser
 import telebot
-import Commands
 
 config = settings()
 bot = telebot.TeleBot(config.bot_token)
 
-
-def generate_markup():
-    """Создание кнопок"""
-    markup = telebot.types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
-    markup.add('pikabu+', 'mdk+', 'joyreactor+')
-    markup.add('pikabu-', 'mdk-', 'joyreactor-')
-    return markup
+users = {}
+link = "https://oauth.vk.com/authorize?\
+client_id=%s&display=mobile&scope=friends,wall,offline&response_type=token&v=5.45" % config.id_vkapi
 
 
-@bot.message_handler(commands=['help', 'start'])
-def send_welcome(message):
-    """Приветствие нового пользователя"""
-    bot.send_message(chat_id=message.chat.id, text="Dear {0}, please, select Public".format(message.chat.first_name),
-                     reply_markup=generate_markup())
+def process_item(message, text=None, attachment=None, date=None, *args, **kwargs):
+    if attachment:
+        typeof = attachment.get("type", False)
+        if typeof == "photo":
+            file = urllib.request.urlopen(attachment["photo"]["src_big"])
+            raw_bytes = BytesIO(file.read())  # Байты картинки
+            raw_bytes.name = "photo.png"
+            bot.send_photo(message.chat.id, raw_bytes)  # Отправить фото адресату
+            # Закрыть соединение
+            file.close()
+            raw_bytes.close()
+        elif typeof == "link":
+            # Если вложение - ссылка, то просто отпралвляем
+            bot.send_message(message.chat.id, "%s|%s" % (attachment["link"]["url"], attachment["link"]["title"]))
+    bot.send_message(message.chat.id, time.strftime("%d.%m.%y %X", time.gmtime(date)))
+    if text:
+        # Отправить текст
+        for partial in telebot.util.split_string(text.replace("<br>", "\n"), 3000):
+            bot.send_message(message.chat.id, partial)  # Отправляем частями
+            time.sleep(2)
+        bot.send_message(message.chat.id, "-----------------------------------------")  # Разделитель
 
 
-@bot.message_handler(func=lambda message: True, content_types=['text'])
-def echo_message(message):
-    if "+" in message.text:
-        """Добавление чата в базу"""
-        base.addRow(chatID=message.chat.id, userName=message.chat.first_name, source=message.text.strip('+'))
-        logger.appAdd(userName=message.chat.first_name)
-    elif "-" in message.text:
-        """Удаление чата из базы"""
-        base.removeRow(chatID=message.chat.id, source=message.text.strip('-'))
-        logger.appDelete(userName=message.chat.first_name)
+if os.path.isfile(config.users_name):
+    with open(config.users_name, 'r') as base:
+        users = json.loads(base.read())  # Загрузка данных из файла
 
 
-if __name__ == '__main__':
-    logger = Commands.workWithLog(config.log)
-    base = Commands.workWithData(config.database_name)
-    parser = URLParser(markup=generate_markup())
+@bot.message_handler(commands=['start'])
+def start(message):
+    users[str(message.chat.id)] = False
+    bot.reply_to(message, 'Hi, ' + message.from_user.first_name)
 
-    # init threads
-    t1 = Thread(target=bot.polling,
-                kwargs={'none_stop': True})
-    t2 = Thread(target=parser.find_new_post,
-                kwargs={'target_url': 'https://api.vk.com/method/wall.get?domain=pikabu&count=10&filter=owner',
-                        'post_mask_url': 'https://new.vk.com/pikabu?w=wall-31480508_'})
-    t3 = Thread(target=parser.find_new_post,
-                kwargs={'target_url': 'https://api.vk.com/method/wall.get?domain=mudakoff&count=10&filter=owner',
-                        'post_mask_url': 'https://new.vk.com/mudakoff?w=wall-57846937_'})
-    t4 = Thread(target=parser.find_new_post,
-                kwargs={'target_url': 'https://api.vk.com/method/wall.get?domain=joyreactor_ru&count=10&filter=owner',
-                        'post_mask_url': 'https://new.vk.com/joyreactor_ru?w=wall-34113013_'})
-    # start threads
-    t1.start()
-    t2.start()
-    t3.start()
-    t4.start()
+
+@bot.message_handler(commands=['help'])
+def Help(message):
+    bot.reply_to(message, "Чтобы бот заработал надо сделать следующее: \n \
+                 1. Переидти по ссылке %s \n \
+                 2. Авторизироваться и дать права приложению \n \
+                 3. Скопировать из адресной строки token (будет выглядеть так access_token=ваш_токен) \n \
+                 4. Отправить сообщение боту /token ваш_токен" % link)
+
+
+@bot.message_handler(commands=['token'])
+def setToken(message):
+    stringToken = message.text.split("/token ")
+    try:
+        users[str(message.chat.id)] = stringToken[1]
+        with open(config.users_name, 'w') as base:
+            base.write(json.dumps(users))
+        bot.reply_to(message, "Установка token успешно завершена!")  # Если всё хорошо
+    except:
+        bot.reply_to(message, "Установка token обернулась ошибкой!")  # Если ошибка
+
+
+@bot.message_handler(commands=['feed'])
+def getFeed(message11):
+
+    session = vk.Session(
+        access_token='40fcbcb734e0a944075c7af675438531c6d8bdfc8235e4076270743bc25ba1377f9608ea138c84ef21196')
+    api = vk.API(session)
+
+    api.wall.post(message='Hello, World!')
+
+
+@bot.message_handler(commands=['curToken'])
+def curToken(message):
+    stringToken = users.get(str(message.chat.id), False)
+
+    if stringToken:
+        bot.reply_to(message, stringToken)  # Отвечает текущим token
+
+    else:
+        bot.reply_to(message, "Token не установлен")  # Если нет token
+
+
+bot.polling()
