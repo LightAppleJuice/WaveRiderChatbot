@@ -23,5 +23,6 @@ class settings():
         self.sleep_time = _parser.get('COMMON', 'sleep_time')
 
         self.database_name = _parser.get('DIRS', 'database_name')
+        self.database_styles = _parser.get('DIRS', 'database_styles')
         self.last_post = _parser.get('DIRS', 'last_post')
         self.log = _parser.get('DIRS', 'log')
