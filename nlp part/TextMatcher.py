@@ -4,7 +4,7 @@ __author__ = 'a.smirnov'
 
 import numpy as np
 import logging
-import re
+import re, os
 from scipy.spatial.distance import cosine
 
 
@@ -18,7 +18,8 @@ def preprocess_train_data(train_data_in):
 
 def preprocess_sentence(sent):
     sent = sent.decode('utf-8').lower().encode('utf-8')
-    sent = re.sub("[.,?!\":;\(\)\*#]", " ", sent)
+    sent = re.sub("[a-z]", "", sent)
+    sent = re.sub(r"[/\\\.,\?!\":;\(\)\*#\'\d]", " ", sent)
     sent = re.sub("\-\s+", " ", sent)
     sent = re.sub("\s+", " ", sent)
     sent = sent.strip()
@@ -115,17 +116,63 @@ class TextMatcher:
         u_vec = self.text_to_vec(text_from_user)
         s_vec = self.text_to_vec(text_from_song)
         # return np.dot(u_vec, s_vec)/np.sqrt(np.dot(u_vec, u_vec)*np.dot(s_vec, s_vec))
-        return 1 - cosine(u_vec, s_vec)
+        try:
+            return 1-cosine(u_vec, s_vec)
+        except ValueError:
+            return -1
+
+
+def test_word2vec_scorer(list_song_text_files, list_test_phrases, matcher):
+
+    def load_songs(list_songs_files):
+        song_text_dict = {}
+        with open(list_songs_files) as list_in:
+            for f_name in list_in:
+                f_name = f_name.strip()
+                with open(f_name) as file_in:
+                    cur_text = file_in.read()
+                    song_text_dict[f_name] = cur_text
+        return song_text_dict
+
+    def load_phrs(phr_file):
+        phr_list = []
+        with open(phr_file) as file_in:
+            for line in file_in:
+                phr_list.append(line.strip())
+        return phr_list
+
+    out_file = "matchers_test.log"
+    song_texts = load_songs(list_song_text_files)
+    test_phrs = load_phrs(list_test_phrases)
+    with open(out_file, "w") as file_out:
+        for cur_phr in test_phrs:
+            max_score = -1
+            best_song = ""
+            for c_song in song_texts.keys():
+                cur_song_text = song_texts[c_song]
+                cur_score = matcher.calc_matching_score(cur_phr, cur_song_text)
+                if cur_score > max_score:
+                    max_score = cur_score
+                    best_song = c_song
+            best_song_class = os.path.basename(best_song)
+            file_out.write(cur_phr+"\t"+best_song_class + "\n")
 
 
 if __name__ == "__main__":
-    path_to_w2v_model = "C:\\Work\\wiki word2vec\\cbow_ns_wikirumy.npy"
-    path_to_w2v_dict = "C:\\Work\\wiki word2vec\\vocab_wikirumy.dic"
+    # path_to_w2v_model = "C:\\Work\\wiki word2vec\\cbow_ns_wikirumy.npy"
+    # path_to_w2v_dict = "C:\\Work\\wiki word2vec\\vocab_wikirumy.dic"
+    path_to_w2v_model = "C:\\Work\\wiki word2vec\\cbow_ns300_fullrostelLK4.npy"
+    path_to_w2v_dict = "C:\\Work\\wiki word2vec\\cbow_ns300_fullrostelLK4.dic"
+
     s1 = "Привет!"
-    s2 = "привет"
-    s3 = "здравствуй"
+    s2 = "приветkk"
+    s3 = "здравствуй а как дела"
     s4 = "пока"
     text_matcher = TextMatcher(path_to_w2v_model, path_to_w2v_dict)
     print text_matcher.calc_matching_score(s1, s2)
     print text_matcher.calc_matching_score(s1, s3)
     print text_matcher.calc_matching_score(s1, s4)
+
+    songs_files = "list_all_ru_songs.txt"
+    test_phrs_files = "list_phrs.txt"
+    test_word2vec_scorer(songs_files, test_phrs_files, text_matcher)
