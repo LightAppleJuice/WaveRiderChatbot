@@ -72,7 +72,7 @@ class RequestSender:
          self.loadMatching()
 
      def loadMatching(self):
-         with io.open(config.database_styles) as file:
+         with io.open(config.database_name) as file:
              for idx, line in enumerate(file):
                  lineSplit = line.split(' ')
                  self.matching[str(idx)] = lineSplit[1:len(lineSplit)]
