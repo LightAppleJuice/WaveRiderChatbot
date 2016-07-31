@@ -10,6 +10,9 @@ import numpy as np
 from PIL import Image
 import caffe
 import requests
+import TextMatcher
+import RequestSender
+import urllib2
 
 
 class FeaturesNet(caffe.Net):
@@ -47,12 +50,16 @@ pretrained = '../model/model.caffemodel'
 mean_file = 'image_proc_model/imagenet_mean.binaryproto'
 net = FeaturesNet(model_file, pretrained, mean_file=mean_file)
 
+path_to_w2v_model = "/home/andrew/Projects/model/cbow_ns300_fullrostelLK4.npy"
+path_to_w2v_dict = "/home/andrew/Projects/model/cbow_ns300_fullrostelLK4.dic"
+text_matcher = TextMatcher.TextMatcher(path_to_w2v_model, path_to_w2v_dict)
 
-
+request_sender = RequestSender.RequestSender()
 
 from settings import settings
 import telebot
 from re import findall
+
 
 config = settings()
 bot = telebot.TeleBot(config.bot_token)
@@ -128,7 +135,6 @@ def help(message):
 
 @bot.message_handler(func=lambda message: True, content_types=['text'])
 def parse_message(message):
-    users = read_users(config.users_name)
     strToFind = 'https:.+access_token=(.+)\&expires_in=.+'
     if u"Опубликовать в VK" == message.text:
         if not users.get(str(message.chat.id)):
@@ -168,16 +174,48 @@ def parse_message(message):
             bot.send_message(chat_id=message.chat.id,
                              text='Отлично! Не будем останавливаться)\n'
                                   'Отправь мне фотографию или текст.', reply_markup=generate_markup())
-    elif u"Хочу другую" == message.text:
-        pass
+    elif u"Хочу еще" == message.text:
+        if str(message.chat.id) in users.keys():
+            print "dddd"
+            lyrics = users[str(message.chat.id)]["nbest"]
+            print len(lyrics.keys())
+            sent_key = users[str(message.chat.id)]["sent_song"]
+            lyrics.pop(sent_key)
+            print len(lyrics.keys())
+        else:
+            lyrics = {}
+
+        if len(lyrics) > 0:
+            id_song = list(lyrics.keys())[0]
+            song = request_sender.getSong(id_song)
+            users[str(message.chat.id)] = {}
+            users[str(message.chat.id)]["nbest"] = lyrics
+            users[str(message.chat.id)]["sent_song"] = id_song
+            # bot.send_audio(message.chat.id, song, reply_markup=generate_markup())
+
+            if not os.path.isdir('music'):
+                os.mkdir('music')
+            fileMP3 = 'music/'+ str(message.chat.id) + '.mp3'
+            f = open(fileMP3, 'wb')
+            f.write(urllib2.urlopen('http://f.muzis.ru/' + song['file_mp3']).read())
+            f.close()
+            bot.send_chat_action(message.chat.id, 'upload_audio')
+            audio = open(fileMP3, 'rb')
+
+            temp = bot.send_audio(message.chat.id, audio, title='%s' % (song['track_name']),
+             timeout = 1000, reply_markup = generate_markup() ) # reply_to_message_id=message.message_id) #, reply_markup=markup)
+            audio.close()
+        else:
+            bot.send_message(chat_id=message.chat.id,
+                             text='Подходящие песни закончились(. Может попробуем снова?\n'
+                                  'Отправь мне фотографию или текст.', reply_markup=telebot.types.ReplyKeyboardHide())
+            users[str(message.chat.id)] = {}
+            users[str(message.chat.id)]["nbest"] = {}
+            users[str(message.chat.id)]["sent_song"] = ''
     elif u"Отмена" == message.text:
         bot.send_message(chat_id=message.chat.id,
                          text='Прости, что неполучилось. Может попробуем еще раз?\n'
-                              'Отправь мне фотографию или текст.', reply_markup=generate_markup())
-
-
-
-
+                              'Отправь мне фотографию или текст.', reply_markup=telebot.types.ReplyKeyboardHide())
 
 
 @bot.message_handler(func=lambda message: True, content_types=['photo'])
@@ -201,15 +239,49 @@ def get_image(message):
     img = np.array(Image.open(photo_name))
     res = net.predict([img])
 
-    styles = []
-    with open('style_names.txt') as style_f:
-        for line in style_f:
-            styles.append(line.strip())
+    style = request_sender.parseVector(res[0])
+    lyrics = request_sender.sendRequest(style, 200)
+    print len(lyrics.keys())
 
-    cur_style = styles[np.argmax(res[0])]
+    if len(lyrics) > 0:
+        id_song = list(lyrics.keys())[0]
+        song = request_sender.getSong(id_song)
+        users[str(message.chat.id)] = {}
+        users[str(message.chat.id)]["nbest"] = lyrics
+        users[str(message.chat.id)]["sent_song"] = id_song
+        # bot.send_audio(message.chat.id, song, reply_markup=generate_markup())
 
-    bot.send_message(chat_id=message.chat.id, text=cur_style)
+        if not os.path.isdir('music'):
+            os.mkdir('music')
+        fileMP3 = 'music/'+ str(message.chat.id) + '.mp3'
+        f = open(fileMP3, 'wb')
+        f.write(urllib2.urlopen('http://f.muzis.ru/' + song['file_mp3']).read())
+        f.close()
+        bot.send_chat_action(message.chat.id, 'upload_audio')
+        audio = open(fileMP3, 'rb')
+
+        temp = bot.send_audio(message.chat.id, audio, title='%s' % (song['track_name']),
+         timeout = 1000, reply_markup = generate_markup() ) # reply_to_message_id=message.message_id) #, reply_markup=markup)
+        audio.close()
+    else:
+        bot.send_message(chat_id=message.chat.id,
+                         text='Прости, что неполучилось. Может попробуем еще раз?\n'
+                              'Отправь мне фотографию или текст.', reply_markup=telebot.types.ReplyKeyboardHide())
+        users[str(message.chat.id)] = {}
+        users[str(message.chat.id)]["nbest"] = {}
+        users[str(message.chat.id)]["sent_song"] = ''
+
+
+    # styles = []
+    # with open('style_names.txt') as style_f:
+    #     for line in style_f:
+    #         styles.append(line.strip())
+    #
+    # cur_style = styles[np.argmax(res[0])]
+    #
+    # bot.send_message(chat_id=message.chat.id, text=cur_style)
 
 
 if __name__ == '__main__':
+    users = read_users(config.users_name)
     bot.polling(none_stop=True)

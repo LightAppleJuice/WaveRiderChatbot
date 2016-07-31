@@ -691,3 +691,41 @@
 [30.07.2016 09:46:31] ERROR - [Site] Exception of type KeyError in check_new_post(): 'mudakoff'
 [30.07.2016 09:46:33] INFO - [App] Alexandr joined the mailing list
 [30.07.2016 09:46:33] INFO - [App] Alexandr left the mailing list
+[31.07.2016 05:46:24] INFO - [App] Script started
+[31.07.2016 05:48:09] INFO - [App] Script started
+[31.07.2016 05:49:25] INFO - [App] Script started
+[31.07.2016 05:50:04] INFO - [App] Script started
+[31.07.2016 05:51:25] INFO - [App] Script started
+[31.07.2016 05:52:48] INFO - [App] Script started
+[31.07.2016 05:53:46] INFO - [App] Script started
+[31.07.2016 05:55:02] INFO - [App] Script started
+[31.07.2016 05:56:31] INFO - [App] Script started
+[31.07.2016 05:56:42] ERROR - A request to the Telegram API was unsuccessful. The server returned HTTP 400 Bad Request. Response body:
+[{"ok":false,"error_code":400,"description":"Bad Request: Wrong persistent file_id specified: contains wrong characters or has wrong length"}]
+[31.07.2016 05:58:24] ERROR - A request to the Telegram API was unsuccessful. The server returned HTTP 400 Bad Request. Response body:
+[{"ok":false,"error_code":400,"description":"Bad Request: Wrong persistent file_id specified: contains wrong characters or has wrong length"}]
+[31.07.2016 05:59:13] INFO - [App] Script started
+[31.07.2016 05:59:25] ERROR - A request to the Telegram API was unsuccessful. The server returned HTTP 400 Bad Request. Response body:
+[{"ok":false,"error_code":400,"description":"Bad Request: Wrong persistent file_id specified: contains wrong characters or has wrong length"}]
+[31.07.2016 06:00:29] INFO - [App] Script started
+[31.07.2016 06:01:50] INFO - [App] Script started
+[31.07.2016 06:02:03] ERROR - A request to the Telegram API was unsuccessful. The server returned HTTP 400 Bad Request. Response body:
+[{"ok":false,"error_code":400,"description":"Bad Request: Wrong persistent file_id specified: contains wrong characters or has wrong length"}]
+[31.07.2016 06:08:23] INFO - [App] Script started
+[31.07.2016 06:10:14] INFO - [App] Script started
+[31.07.2016 06:13:19] INFO - [App] Script started
+[31.07.2016 06:14:54] INFO - [App] Script started
+[31.07.2016 06:21:37] INFO - [App] Script started
+[31.07.2016 06:24:58] INFO - [App] Script started
+[31.07.2016 06:28:08] INFO - [App] Script started
+[31.07.2016 06:29:28] INFO - [App] Script started
+[31.07.2016 06:35:17] INFO - [App] Script started
+[31.07.2016 06:42:24] INFO - [App] Script started
+[31.07.2016 06:45:29] INFO - [App] Script started
+[31.07.2016 06:46:46] INFO - [App] Script started
+[31.07.2016 06:47:28] INFO - [App] Script started
+[31.07.2016 06:48:55] INFO - [App] Script started
+[31.07.2016 06:51:01] INFO - [App] Script started
+[31.07.2016 06:52:41] INFO - [App] Script started
+[31.07.2016 06:55:50] INFO - [App] Script started
+[31.07.2016 06:56:48] INFO - [App] Script started

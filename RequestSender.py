@@ -2,6 +2,7 @@ import requests
 from settings import settings
 import Commands
 import io
+import numpy as np
 
 config = settings()
 
@@ -21,8 +22,9 @@ class RequestSender:
          return
 
      def parseVector(self, vector):
+         print vector
          targetStyle = None
-         idx = vector.index(max(vector))
+         idx = np.argmax(vector)
          elem = self.matching[self.CNNstyles[idx]]
          targetStyle = elem[2]
          return targetStyle
@@ -62,8 +64,8 @@ class RequestSender:
                  raise Exception('Muzis exception: Unknown exception')
              parsed_string = r.json()
              songs = parsed_string['songs']
-             song = songs[0]['file_mp3']
-             return song
+            #  song = songs[0]['file_mp3']
+             return songs[0]
          except:
              self.logger.siteWarning()
          return
@@ -76,5 +78,3 @@ class RequestSender:
 #   0.18867876,  0.02701183])
 # lyr = RS.sendRequest(targetStyle, 1)
 # s = RS.getSong(33301)
-
-
