@@ -74,7 +74,7 @@ bot = telebot.TeleBot(config.bot_token)
 mp3Path=''
 
 link = "https://oauth.vk.com/authorize?\
-client_id=%s&display=mobile&scope=friends,wall,offline&response_type=token&v=5.45" % config.id_vkapi
+client_id=%s&display=mobile&scope=wall,offline,audio,photos&response_type=token&v=5.45" % config.id_vkapi
 
 
 def read_users(pathToBase=''):
@@ -86,10 +86,14 @@ def read_users(pathToBase=''):
 
 
 def make_post(token='', imgPath='', mp3Path=''):
+    if (not imgPath) or (not mp3Path):
+        return 0
     session = vk.Session(access_token=token)
     api = vk.API(session)
 
     gid = config.id_vkapi
+    print imgPath
+    print mp3Path
 
 
     # путь к вашему изображению
@@ -100,6 +104,7 @@ def make_post(token='', imgPath='', mp3Path=''):
     data = dict(access_token=token, gid=gid)
     response = requests.post(method_url, data)
     result = json.loads(response.text)
+    print result
     upload_url = result['response']['upload_url']
 
     # Загружаем изображение на url
@@ -186,9 +191,10 @@ def help(message):
 
 @bot.message_handler(func=lambda message: True, content_types=['text'])
 def parse_message(message):
+    users_id = read_users(config.users_token)
     strToFind = 'https:.+access_token=(.+)\&expires_in=.+'
     if u"Опубликовать в VK" == message.text:
-        if not users.get(str(message.chat.id)):
+        if not users_id.get(str(message.chat.id)):
 
             keyboard = telebot.types.InlineKeyboardMarkup()
             url_button = telebot.types.InlineKeyboardButton(text="Перейти в VK", url=link)
@@ -199,16 +205,17 @@ def parse_message(message):
                                   'после перехода по ссылке:'
                              .format('\xF0\x9F\x98\x94'), reply_markup=keyboard)
         else:
-            make_post(token=users[str(message.chat.id)]['token'], imgPath=os.path.join('photos', 'tmp.jpg'), mp3Path=mp3Path)
+            make_post(token=users_id[str(message.chat.id)]['token'], imgPath='/home/andrew/Projects/WaveRiderChatbot/photos/tmp.jpg',
+            mp3Path='/home/andrew/Projects/WaveRiderChatbot/music/{}.mp3'.format(message.chat.id))
             bot.send_message(chat_id=message.chat.id,
                              text='Отлично! Не будем останавливаться)\n'
                                   'Отправь мне фотографию или текст.', reply_markup=generate_markup())
     elif 'https' in message.text:
         try:
-            users[str(message.chat.id)] = findall(strToFind, message.text)[0]
+            users_id[str(message.chat.id)] = {'token': findall(strToFind, message.text)[0]}
             try:
-                with open(config.users_name, 'w') as base:
-                    base.write(json.dumps(users))
+                with open(config.users_token, 'w') as base:
+                    base.write(json.dumps(users_id))
             except:
                 bot.send_message(chat_id=message.chat.id,
                                  text='Память у меня сдает в последнее время{0}.\n'
@@ -218,7 +225,8 @@ def parse_message(message):
                              text='Не могу найти токен.\n '
                                  'Проверь, пожалуйста, скопированную строку и пришли мне ее еще раз')
         else:
-            make_post(token=users[str(message.chat.id)]['token'])
+            make_post(token=users_id[str(message.chat.id)]['token'], imgPath='/home/andrew/Projects/WaveRiderChatbot/photos/tmp.jpg',
+            mp3Path='/home/andrew/Projects/WaveRiderChatbot/music/{}.mp3'.format(message.chat.id))
             bot.send_message(chat_id=message.chat.id,
                              text='Отлично! Не будем останавливаться)\n'
                                   'Отправь мне фотографию или текст.', reply_markup=generate_markup())
@@ -423,7 +431,7 @@ def get_image(message):
                     users[str(message.chat.id)] = {}
                 users[str(message.chat.id)]["nbest"] = {}
                 users[str(message.chat.id)]["sent_song"] = ''
-    else:        
+    else:
         users[str(message.chat.id)] = {}
         users[str(message.chat.id)]["pic_seen"] = True
         print "b"

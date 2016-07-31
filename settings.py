@@ -17,4 +17,5 @@ class settings():
 
         self.database_name = _parser.get('DIRS', 'database_name')
         self.users_name = _parser.get('DIRS', 'users_name')
+        self.users_token = _parser.get('DIRS', 'users_token')
         self.log = _parser.get('DIRS', 'log')
