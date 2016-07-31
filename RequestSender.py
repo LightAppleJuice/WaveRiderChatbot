@@ -21,21 +21,22 @@ class RequestSender:
          return
 
      def parseVector(self, vector):
-         #parsing
          targetStyle = None
-         for idx, value in enumerate(vector):
-             elem = self.matching[self.CNNstyles[idx]]
-             minValue = 0.0#elem[0]
-             maxValue = 1.0#elem[1]
-             if (value > minValue) & (value < maxValue):
-                 targetStyle = elem[2]
-                 break
+         idx = vector.index(max(vector))
+         elem = self.matching[self.CNNstyles[idx]]
+         targetStyle = elem[2]
          return targetStyle
 
-     def sendRequest(self, style):
-         params = {'values': str(style), 'size': 200}
+     def sendRequest(self, style, size):
+         params = {'values': str(style), 'size': size}
          try:
             r = requests.post("http://muzis.ru/api/stream_from_values.api", data=params)
+            if r.status_code == 403:
+                raise Exception('Muzis exception: Access denied')
+            if r.status_code == 404:
+                raise Exception('Muzis exception: Object not found')
+            if r.status_code != 200:
+                raise Exception('Muzis exception: Unknown exception')
             parsed_string = r.json()
             songs = parsed_string['songs']
             allLyrics = dict()
@@ -50,12 +51,18 @@ class RequestSender:
 
      def getSong(self, id):
          params = {'type': 2, 'id': id}
+         song = None
          try:
              r = requests.post("http://muzis.ru/api/stream_from_obj.api", data=params)
+             if r.status_code == 403:
+                 raise Exception('Muzis exception: Access denied')
+             if r.status_code == 404:
+                 raise Exception('Muzis exception: Object not found')
+             if r.status_code != 200:
+                 raise Exception('Muzis exception: Unknown exception')
              parsed_string = r.json()
              songs = parsed_string['songs']
              song = songs[0]['file_mp3']
-
              return song
          except:
              self.logger.siteWarning()
@@ -67,7 +74,7 @@ class RequestSender:
 #   0.02935727,  0.02657287,  0.02752874,  0.00897765,  0.01500904,  0.01215811,
 #   0.02771803,  0.23560295,  0.01554973,  0.01857543, 0.03318637,  0.17324899,
 #   0.18867876,  0.02701183])
-# lyr = RS.sendRequest(targetStyle)
+# lyr = RS.sendRequest(targetStyle, 1)
 # s = RS.getSong(33301)
 
 
