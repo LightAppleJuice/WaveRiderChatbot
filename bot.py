@@ -216,6 +216,42 @@ def parse_message(message):
         bot.send_message(chat_id=message.chat.id,
                          text='Прости, что неполучилось. Может попробуем еще раз?\n'
                               'Отправь мне фотографию или текст.', reply_markup=telebot.types.ReplyKeyboardHide())
+    else:
+        if str(message.chat.id) in users.keys():
+            lyrics = users[str(message.chat.id)]["nbest"]
+            print len(lyrics.keys())
+            sent_key = users[str(message.chat.id)]["sent_song"]
+            lyrics.pop(sent_key)
+            print len(lyrics.keys())
+        else:
+            lyrics = {}
+
+        if len(lyrics) > 0:
+            users_discr = message.text.encode("utf-8")
+            best_song_id = TextMatcher.find_song_with_the_best_text(users_discr, lyrics, text_matcher)
+            song = request_sender.getSong(best_song_id)
+            users[str(message.chat.id)]["sent_song"] = best_song_id
+            users[str(message.chat.id)]["nbest"] = lyrics
+
+            if not os.path.isdir('music'):
+                os.mkdir('music')
+            fileMP3 = 'music/'+ str(message.chat.id) + '.mp3'
+            f = open(fileMP3, 'wb')
+            f.write(urllib2.urlopen('http://f.muzis.ru/' + song['file_mp3']).read())
+            f.close()
+            bot.send_chat_action(message.chat.id, 'upload_audio')
+            audio = open(fileMP3, 'rb')
+
+            temp = bot.send_audio(message.chat.id, audio, title='%s' % (song['track_name']),
+             timeout = 1000, reply_markup = generate_markup() ) # reply_to_message_id=message.message_id) #, reply_markup=markup)
+            audio.close()
+        else:
+            bot.send_message(chat_id=message.chat.id,
+                             text='Подходящие песни закончились(. Может попробуем снова?\n'
+                                  'Отправь мне фотографию или текст.', reply_markup=telebot.types.ReplyKeyboardHide())
+            users[str(message.chat.id)] = {}
+            users[str(message.chat.id)]["nbest"] = {}
+            users[str(message.chat.id)]["sent_song"] = ''
 
 
 @bot.message_handler(func=lambda message: True, content_types=['photo'])
