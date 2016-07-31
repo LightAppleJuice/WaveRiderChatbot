@@ -48,22 +48,46 @@ mean_file = 'image_proc_model/imagenet_mean.binaryproto'
 net = FeaturesNet(model_file, pretrained, mean_file=mean_file)
 
 
+
+
 from settings import settings
 import telebot
+from re import findall
 
 config = settings()
 bot = telebot.TeleBot(config.bot_token)
 
-users = {}
 link = "https://oauth.vk.com/authorize?\
 client_id=%s&display=mobile&scope=friends,wall,offline&response_type=token&v=5.45" % config.id_vkapi
+
+
+def read_users(pathToBase=''):
+    res = {}
+    if os.path.isfile(pathToBase):
+        with open(pathToBase, 'r') as base:
+            res = json.loads(base.read())
+    return res
+
+
+def make_post(token=''):
+    session = vk.Session(access_token=token)
+    api = vk.API(session)
+    api.wall.post(message='Hello, World!')
+
+
+def generate_markup():
+    markup = telebot.types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
+    markup.add('Опубликовать в VK')
+    markup.add('Хочу еще')
+    markup.add('Отмена')
+    return markup
 
 
 def process_item(message, text=None, attachment=None, date=None, *args, **kwargs):
     if attachment:
         typeof = attachment.get("type", False)
         if typeof == "photo":
-            file = urllib.request.urlopen(attachment["photo"]["src_big"])
+            file = urllib2.urlopen(attachment["photo"]["src_big"])
             raw_bytes = BytesIO(file.read())  # Байты картинки
             raw_bytes.name = "photo.png"
             bot.send_photo(message.chat.id, raw_bytes)  # Отправить фото адресату
@@ -82,57 +106,78 @@ def process_item(message, text=None, attachment=None, date=None, *args, **kwargs
         bot.send_message(message.chat.id, "-----------------------------------------")  # Разделитель
 
 
-if os.path.isfile(config.users_name):
-    with open(config.users_name, 'r') as base:
-        users = json.loads(base.read())  # Загрузка данных из файла
-
-
 @bot.message_handler(commands=['start'])
 def start(message):
-    users[str(message.chat.id)] = False
-    bot.reply_to(message, 'Hi, ' + message.from_user.first_name)
+    bot.send_message(chat_id=message.chat.id,
+                     text='Привет, {0} {1}!\n Тебе нужно что-то запостить?\n Я подберу подходящую музыку под пост и опубликую его для тебя в vk.\n'
+                          'Я могу работать как с текстом и фотографиями. Просто отправь мне всё необходимое. {2}\n\n'
+                     .format(message.from_user.first_name, '\xE2\x9C\x8B', '\xF0\x9F\x99\x8A', '\xF0\x9F\x94\x8E'))
 
 
 @bot.message_handler(commands=['help'])
-def Help(message):
-    bot.reply_to(message, "Чтобы бот заработал надо сделать следующее: \n \
-                 1. Переидти по ссылке %s \n \
-                 2. Авторизироваться и дать права приложению \n \
-                 3. Скопировать из адресной строки token (будет выглядеть так access_token=ваш_токен) \n \
-                 4. Отправить сообщение боту /token ваш_токен" % link)
+def help(message):
+    bot.send_message(chat_id=message.chat.id,
+                     text='В настоящий момент я могу выполнить следующие действия:\n\n'
+                          '1. Определяю доминирующую эмоцию по фотографии и подобираю под нее песню {0}\n'
+                          '2. Анализирую реакцию на предложенную музыку\n'
+                          '3. В случае неудовольствия результатом {1}, '
+                          'изучаю ответ и стараюсь выполнить поиск более точно\n'
+                          '4. Публикую результат на странице в VK'
+                     .format('\xF0\x9F\x8E\xA7', '\xF0\x9F\x98\xA0'))
 
 
-@bot.message_handler(commands=['token'])
-def setToken(message):
-    stringToken = message.text.split("/token ")
-    try:
-        users[str(message.chat.id)] = stringToken[1]
-        with open(config.users_name, 'w') as base:
-            base.write(json.dumps(users))
-        bot.reply_to(message, "Установка token успешно завершена!")  # Если всё хорошо
-    except:
-        bot.reply_to(message, "Установка token обернулась ошибкой!")  # Если ошибка
+@bot.message_handler(func=lambda message: True, content_types=['text'])
+def parse_message(message):
+    users = read_users(config.users_name)
+    strToFind = 'https:.+access_token=(.+)\&expires_in=.+'
+    if u"Опубликовать в VK" == message.text:
+        if not users.get(str(message.chat.id)):
+
+            keyboard = telebot.types.InlineKeyboardMarkup()
+            url_button = telebot.types.InlineKeyboardButton(text="Перейти в VK", url=link)
+            keyboard.add(url_button)
+            bot.send_message(chat_id=message.chat.id,
+                             text='Прости {0}, но я не смогу обновить твою стену, '
+                                  'пока ты не пришлешь мне текст из адресной строки, '
+                                  'после перехода по ссылке:'
+                             .format('\xF0\x9F\x98\x94'), reply_markup=keyboard)
+        else:
+            make_post(token=users[str(message.chat.id)])
+            # process_item(message=message, attachment={"type": "photo", "photo": {"src_big": r'C:\Users\1\Desktop\hockey\IMG-20160108-WA0001.jpg'}})
+            bot.send_message(chat_id=message.chat.id,
+                             text='Отлично! Не будем останавливаться)\n'
+                                  'Отправь мне фотографию или текст.', reply_markup=generate_markup())
+    elif 'https' in message.text:
+        try:
+            users[str(message.chat.id)] = findall(strToFind, message.text)[0]
+            try:
+                with open(config.users_name, 'w') as base:
+                    base.write(json.dumps(users))
+            except:
+                bot.send_message(chat_id=message.chat.id,
+                                 text='Память у меня сдает в последнее время{0}.\n'
+                                      'не могу тебя запомнить.'.format('\xF0\x9F\x98\x94'), reply_markup=generate_markup())
+            make_post(token=users[str(message.chat.id)])
+        except:
+            bot.send_message(chat_id=message.chat.id,
+                             text='Не могу найти токен.\n '
+                                 'Проверь, пожалуйста, скопированную строку и пришли мне ее еще раз')
+        else:
+            make_post(token=users[str(message.chat.id)])
+            #process_item(message=message, attachment={"type": "photo", "photo": {"src_big": r'C:\Users\1\Desktop\hockey\IMG-20160108-WA0001.jpg'}})
+            bot.send_message(chat_id=message.chat.id,
+                             text='Отлично! Не будем останавливаться)\n'
+                                  'Отправь мне фотографию или текст.', reply_markup=generate_markup())
+    elif u"Хочу другую" == message.text:
+        pass
+    elif u"Отмена" == message.text:
+        bot.send_message(chat_id=message.chat.id,
+                         text='Прости, что неполучилось. Может попробуем еще раз?\n'
+                              'Отправь мне фотографию или текст.', reply_markup=generate_markup())
 
 
-@bot.message_handler(commands=['feed'])
-def getFeed(message11):
-
-    session = vk.Session(
-        access_token='40fcbcb734e0a944075c7af675438531c6d8bdfc8235e4076270743bc25ba1377f9608ea138c84ef21196')
-    api = vk.API(session)
-
-    api.wall.post(message='Hello, World!')
 
 
-@bot.message_handler(commands=['curToken'])
-def curToken(message):
-    stringToken = users.get(str(message.chat.id), False)
-
-    if stringToken:
-        bot.reply_to(message, stringToken)  # Отвечает текущим token
-
-    else:
-        bot.reply_to(message, "Token не установлен")  # Если нет token
 
 
 @bot.message_handler(func=lambda message: True, content_types=['photo'])
@@ -166,4 +211,5 @@ def get_image(message):
     bot.send_message(chat_id=message.chat.id, text=cur_style)
 
 
-bot.polling()
+if __name__ == '__main__':
+    bot.polling(none_stop=True)
