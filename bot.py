@@ -71,6 +71,7 @@ from re import findall
 
 config = settings()
 bot = telebot.TeleBot(config.bot_token)
+mp3Path=''
 
 link = "https://oauth.vk.com/authorize?\
 client_id=%s&display=mobile&scope=friends,wall,offline&response_type=token&v=5.45" % config.id_vkapi
@@ -84,10 +85,55 @@ def read_users(pathToBase=''):
     return res
 
 
-def make_post(token=''):
+def make_post(token='', imgPath='', mp3Path=''):
     session = vk.Session(access_token=token)
     api = vk.API(session)
-    api.wall.post(message='Hello, World!')
+
+    gid = config.id_vkapi
+
+
+    # путь к вашему изображению
+    img = {'photo': (os.path.split(imgPath)[1], open(imgPath, 'rb'))}
+
+    # Получаем ссылку для загрузки изображений
+    method_url = 'https://api.vk.com/method/photos.getWallUploadServer?'
+    data = dict(access_token=token, gid=gid)
+    response = requests.post(method_url, data)
+    result = json.loads(response.text)
+    upload_url = result['response']['upload_url']
+
+    # Загружаем изображение на url
+    response = requests.post(upload_url, files=img)
+    result = json.loads(response.text)
+
+    # Сохраняем фото на сервере и получаем id
+    method_url = 'https://api.vk.com/method/photos.saveWallPhoto?'
+    data = dict(access_token=token, gid=gid, photo=result['photo'], hash=result['hash'], server=result['server'])
+    response = requests.post(method_url, data)
+    resultPhoto = json.loads(response.text)['response'][0]['id']
+
+
+
+    audio = {'file': (os.path.split(mp3Path)[1], open(mp3Path, 'rb'))}
+    # Получаем ссылку для загрузки изображений
+    method_url = 'https://api.vk.com/method/audio.getUploadServer?'
+    data = dict(access_token=token, gid=gid)
+    response = requests.post(method_url, data)
+    result = json.loads(response.text)
+    upload_url = result['response']['upload_url']
+
+    # Загружаем изображение на url
+    response = requests.post(upload_url, files=audio)
+    result = json.loads(response.text)
+
+    # Сохраняем фото на сервере и получаем id
+    method_url = 'https://api.vk.com/method/audio.save?'
+    data = dict(access_token=token, gid=gid, audio=result['audio'], hash=result['hash'], server=result['server'])
+    response = requests.post(method_url, data)
+    resultAid = json.loads(response.text)['response']['aid']
+    result = json.loads(response.text)['response']['owner_id']
+    a = api.audio.get()
+    api.wall.post(message='#MadeByWaveRiderChatbot', attachments='{0},audio{1}_{2}'.format(resultPhoto, result, resultAid))
 
 
 def generate_markup():
@@ -124,21 +170,18 @@ def process_item(message, text=None, attachment=None, date=None, *args, **kwargs
 @bot.message_handler(commands=['start'])
 def start(message):
     bot.send_message(chat_id=message.chat.id,
-                     text='Привет, {0} {1}!\n Тебе нужно что-то запостить?\n Я подберу подходящую музыку под пост и опубликую его для тебя в vk.\n'
-                          'Я могу работать как с текстом и фотографиями. Просто отправь мне всё необходимое. {2}\n\n'
-                     .format(message.from_user.first_name, '\xE2\x9C\x8B', '\xF0\x9F\x99\x8A', '\xF0\x9F\x94\x8E'))
+                     text='Привет, {0} {1}!\nТебе нужно что-то запостить?\nЯ подберу подходящую музыку {2} под пост и опубликую его для тебя в vk.\n'
+                          'Я могу работать как с текстом и фотографиями. Просто отправь мне всё необходимое.\n\n'
+                     .format(message.from_user.first_name, '\xE2\x9C\x8B', '\xF0\x9F\x8E\xB6'))
 
 
 @bot.message_handler(commands=['help'])
 def help(message):
     bot.send_message(chat_id=message.chat.id,
-                     text='В настоящий момент я могу выполнить следующие действия:\n\n'
-                          '1. Определяю доминирующую эмоцию по фотографии и подобираю под нее песню {0}\n'
-                          '2. Анализирую реакцию на предложенную музыку\n'
-                          '3. В случае неудовольствия результатом {1}, '
-                          'изучаю ответ и стараюсь выполнить поиск более точно\n'
-                          '4. Публикую результат на странице в VK'
-                     .format('\xF0\x9F\x8E\xA7', '\xF0\x9F\x98\xA0'))
+                     text='Я подберу для тебя музыку {0}, подходящую под загруженную фотографию или текст. '
+                          'Уточню результат, если потребуется. Загружу найденную песню, '
+                          'а также смогу опубликовать сгенерированный пост на твоей старнице в VK.'
+                     .format('\xF0\x9F\x8E\xA7'))
 
 
 @bot.message_handler(func=lambda message: True, content_types=['text'])
@@ -156,8 +199,7 @@ def parse_message(message):
                                   'после перехода по ссылке:'
                              .format('\xF0\x9F\x98\x94'), reply_markup=keyboard)
         else:
-            make_post(token=users[str(message.chat.id)])
-            # process_item(message=message, attachment={"type": "photo", "photo": {"src_big": r'C:\Users\1\Desktop\hockey\IMG-20160108-WA0001.jpg'}})
+            make_post(token=users[str(message.chat.id)]['token'], imgPath=os.path.join('photos', 'tmp.jpg'), mp3Path=mp3Path)
             bot.send_message(chat_id=message.chat.id,
                              text='Отлично! Не будем останавливаться)\n'
                                   'Отправь мне фотографию или текст.', reply_markup=generate_markup())
@@ -171,14 +213,12 @@ def parse_message(message):
                 bot.send_message(chat_id=message.chat.id,
                                  text='Память у меня сдает в последнее время{0}.\n'
                                       'не могу тебя запомнить.'.format('\xF0\x9F\x98\x94'), reply_markup=generate_markup())
-            make_post(token=users[str(message.chat.id)])
         except:
             bot.send_message(chat_id=message.chat.id,
                              text='Не могу найти токен.\n '
                                  'Проверь, пожалуйста, скопированную строку и пришли мне ее еще раз')
         else:
-            make_post(token=users[str(message.chat.id)])
-            #process_item(message=message, attachment={"type": "photo", "photo": {"src_big": r'C:\Users\1\Desktop\hockey\IMG-20160108-WA0001.jpg'}})
+            make_post(token=users[str(message.chat.id)]['token'])
             bot.send_message(chat_id=message.chat.id,
                              text='Отлично! Не будем останавливаться)\n'
                                   'Отправь мне фотографию или текст.', reply_markup=generate_markup())
