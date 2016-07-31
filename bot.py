@@ -6,7 +6,46 @@ import urllib  # Для загрузки картинки с сервера
 from io import BytesIO  # Для отправки картинки к пользователю
 import time  # Представляет время в читаемый формат
 import vk
+import numpy as np
+from PIL import Image
+import caffe
+import requests
 
+
+class FeaturesNet(caffe.Net):
+    def __init__(self, model_file, pretrained_file, mean_file=None, channel_swap=[2, 1, 0]):
+        caffe.Net.__init__(self, model_file, pretrained_file, caffe.TEST)
+
+        # configure pre-processing
+        in_ = self.inputs[0]
+        self.transformer = caffe.io.Transformer({in_: self.blobs[in_].data.shape})
+        self.transformer.set_transpose(in_, (2, 0, 1))
+        if mean_file is not None:
+            blob = caffe.proto.caffe_pb2.BlobProto()
+            data = open(mean_file, 'rb').read()
+            blob.ParseFromString(data)
+            arr = np.array(caffe.io.blobproto_to_array(blob))
+            out = arr[0]
+            self.transformer.set_mean('data', out)
+        if channel_swap is not None:
+            self.transformer.set_channel_swap(in_, channel_swap)
+
+    def predict(self, image_list):
+        in_ = self.inputs[0]
+        caffe_in = np.zeros((len(image_list), image_list[0].shape[2]) + self.blobs[in_].data.shape[2:],
+                            dtype=np.float32)
+        for i, image in enumerate(image_list):
+            caffe_in[i] = self.transformer.preprocess(in_, image)
+        out = self.forward_all(**{in_: caffe_in})
+        predictions = out[self.outputs[0]]
+
+        return predictions
+
+
+model_file = 'image_proc_model/deploy.prototxt'
+pretrained = '../model/model.caffemodel'
+mean_file = 'image_proc_model/imagenet_mean.binaryproto'
+net = FeaturesNet(model_file, pretrained, mean_file=mean_file)
 
 
 from settings import settings
@@ -94,6 +133,37 @@ def curToken(message):
 
     else:
         bot.reply_to(message, "Token не установлен")  # Если нет token
+
+
+@bot.message_handler(func=lambda message: True, content_types=['photo'])
+def get_image(message):
+    bot.send_chat_action(message.chat.id, "upload_photo")
+
+    height_list = []
+    for ph in message.photo:
+        height_list.append(ph.height)
+    photo_ind = np.argmax(height_list)
+
+    file_info = bot.get_file(message.photo[photo_ind].file_id)
+    file = requests.get('https://api.telegram.org/file/bot{0}/{1}'.format(config.bot_token, file_info.file_path))
+    photo_name = os.path.join('photos', 'tmp.jpg')
+    if not os.path.isdir('photos'):
+        os.mkdir('photos')
+    f = open(photo_name, 'wb')
+    f.write(file.content)
+    f.close()
+
+    img = np.array(Image.open(photo_name))
+    res = net.predict([img])
+
+    styles = []
+    with open('style_names.txt') as style_f:
+        for line in style_f:
+            styles.append(line.strip())
+
+    cur_style = styles[np.argmax(res[0])]
+
+    bot.send_message(chat_id=message.chat.id, text=cur_style)
 
 
 bot.polling()
