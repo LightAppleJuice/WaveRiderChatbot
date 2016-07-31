@@ -158,6 +158,25 @@ def test_word2vec_scorer(list_song_text_files, list_test_phrases, matcher):
             file_out.write(cur_phr+"\t"+best_song_class + "\n")
 
 
+def find_song_with_the_best_text(users_discr, text_dict, matcher):
+    """
+    :param users_discr: text that was input by user
+    :param text_dict: dictionary, keys -- song_id, values -- lyrics
+    :param matcher: of TextMatcher class
+    :return: the best key
+    """
+    #TODO wtf? make it fast
+    best_score = -2
+    best_key = ""
+    for cur_id in text_dict.keys():
+        cur_text = text_dict[cur_id]
+        cur_score = matcher.calc_matching_score(users_discr, cur_text)
+        if cur_score > best_score:
+            best_score = cur_score
+            best_key = cur_id
+    return best_key
+
+
 if __name__ == "__main__":
     # path_to_w2v_model = "C:\\Work\\wiki word2vec\\cbow_ns_wikirumy.npy"
     # path_to_w2v_dict = "C:\\Work\\wiki word2vec\\vocab_wikirumy.dic"
