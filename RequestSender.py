@@ -41,10 +41,12 @@ class RequestSender:
                 raise Exception('Muzis exception: Unknown exception')
             parsed_string = r.json()
             songs = parsed_string['songs']
+            # print songs
             allLyrics = dict()
             for j, song in enumerate(songs):
                 id = song['id']
                 lyrics = song['lyrics'].encode('utf-8')
+
                 allLyrics[str(id)] = lyrics
             return allLyrics
          except:
