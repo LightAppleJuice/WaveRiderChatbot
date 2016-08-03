@@ -18,9 +18,9 @@ def preprocess_train_data(train_data_in):
 
 def preprocess_sentence(sent):
     sent = sent.decode('utf-8').lower().encode('utf-8')
-    sent = re.sub("[a-z]", "", sent)
     sent = re.sub(r"[/\\\.,\?!\":;\(\)\*#\'\d]", " ", sent)
     sent = re.sub("\-\s+", " ", sent)
+    sent = re.sub("[a-z]", "", sent)
     sent = re.sub("\s+", " ", sent)
     sent = sent.strip()
     return sent
@@ -83,20 +83,34 @@ class Word2Vec:
                     line_num += 1
 
 
+def load_eng_rus_dict(dict_path):
+    dict_out = {}
+    with open(dict_path) as file_in:
+        for line in file_in:
+            line = line.strip()
+            e_w, r_w = re.split("=", line)
+            if e_w not in dict_out.keys():
+                dict_out[e_w] = r_w
+    return dict_out
+
+
 class TextMatcher:
     """
      to calc matching score for two strings of text
     """
-    def __init__(self, path2model, path2dict):
+    def __init__(self, path2model, path2dict, path2engrusdict=""):
         """
         :param path2model: path to word2vec model
         :param path2dict:  path to word2vec dict
         """
         self.model_path = path2model
         self.dict_path = path2dict
+        self.eng_rus_path = path2engrusdict
         self.word2vec = Word2Vec()
         self.word2vec.load_word2vec_model(self.model_path)
         self.word2vec.load_word2vec_dictionary(self.dict_path)
+        if self.eng_rus_path:
+            self.eng_rus_dict = load_eng_rus_dict(self.eng_rus_path)
 
     def text_to_vec(self, text):
         """
@@ -104,7 +118,7 @@ class TextMatcher:
         :param text: sentence
         :return: vector shape = (1, dim)
         """
-        text_proc = preprocess_sentence(text)
+        text_proc = self.preprocess_sentence(text)
         word_vecs = self.word2vec.covert_from_words_to_vecs(text_proc.split())
         sent_vec = np.average(word_vecs, axis=1)
         return sent_vec.T
@@ -120,6 +134,27 @@ class TextMatcher:
             return 1-cosine(u_vec, s_vec)
         except ValueError:
             return -1
+
+    def translate_eng_to_rus(self, sent):
+        words_in = sent.split()
+        words_out = []
+        for cw in words_in:
+            if cw in self.eng_rus_dict.keys():
+                words_out.append(self.eng_rus_dict[cw])
+            else:
+                words_out.append(cw)
+        return " ".join(words_out)
+
+    def preprocess_sentence(self, sent):
+        sent = sent.decode('utf-8').lower().encode('utf-8')
+        sent = re.sub(r"[/\\\.,\?!\":;\(\)\*#\'\d]", " ", sent)
+        sent = re.sub("\-\s+", " ", sent)
+        if self.eng_rus_path:
+            sent = self.translate_eng_to_rus(sent)
+        sent = re.sub("[a-z]", "", sent)
+        sent = re.sub("\s+", " ", sent)
+        sent = sent.strip()
+        return sent
 
 
 def test_word2vec_scorer(list_song_text_files, list_test_phrases, matcher):
@@ -141,11 +176,12 @@ def test_word2vec_scorer(list_song_text_files, list_test_phrases, matcher):
                 phr_list.append(line.strip())
         return phr_list
 
-    out_file = "matchers_test.log"
+    out_file = "./nlp part/matchers_test.log"
     song_texts = load_songs(list_song_text_files)
     test_phrs = load_phrs(list_test_phrases)
     with open(out_file, "w") as file_out:
         for cur_phr in test_phrs:
+            print cur_phr.decode("utf-8")
             max_score = -1
             best_song = ""
             for c_song in song_texts.keys():
@@ -180,18 +216,22 @@ def find_song_with_the_best_text(users_discr, text_dict, matcher):
 if __name__ == "__main__":
     # path_to_w2v_model = "C:\\Work\\wiki word2vec\\cbow_ns_wikirumy.npy"
     # path_to_w2v_dict = "C:\\Work\\wiki word2vec\\vocab_wikirumy.dic"
-    path_to_w2v_model = "/home/andrew/Projects/model/cbow_ns300_fullrostelLK4.npy"
-    path_to_w2v_dict = "/home/andrew/Projects/model/cbow_ns300_fullrostelLK4.dic"
+
+    path_to_w2v_model = "C:\\Work\\wiki word2vec\\cbow_ns300_fullrostelLK4.npy"
+    path_to_w2v_dict = "C:\\Work\\wiki word2vec\\cbow_ns300_fullrostelLK4.dic"
+    # path_to_w2v_model = "/home/andrew/Projects/model/cbow_ns300_fullrostelLK4.npy"
+    # path_to_w2v_dict = "/home/andrew/Projects/model/cbow_ns300_fullrostelLK4.dic"
+    path_to_eng_rus_dict = "./nlp part/dict_eng_rus.txt"
 
     s1 = "Привет!"
     s2 = "приветkk"
     s3 = "здравствуй а как дела"
     s4 = "пока"
-    text_matcher = TextMatcher(path_to_w2v_model, path_to_w2v_dict)
+    text_matcher = TextMatcher(path_to_w2v_model, path_to_w2v_dict, path_to_eng_rus_dict)
     print text_matcher.calc_matching_score(s1, s2)
     print text_matcher.calc_matching_score(s1, s3)
     print text_matcher.calc_matching_score(s1, s4)
 
-    songs_files = "list_all_ru_songs.txt"
-    test_phrs_files = "list_phrs.txt"
+    songs_files = "./nlp part/list_all_ru_songs.txt"
+    test_phrs_files = "./nlp part/list_phrs.txt"
     test_word2vec_scorer(songs_files, test_phrs_files, text_matcher)
