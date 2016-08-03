@@ -1,12 +1,12 @@
 Detailed	Progressive
-Pastel	Весна
-Melancholy	Блюз, Рэп-лирика, Разлука
+Pastel	Весна, Ретро
+Melancholy	Блюз, Рэп-лирика, Разлука, Романс
 Noir	Побег, Память
 HDR	Воспоминания
 Vintage	Сказка, Инструментальная музыка
 Long Exposure	Вечер, Ночь, Сказка, Фэнтези, Зарисовка
-Horror	Death/metal core, Ужасы
-Sunny	Лето, Пляжная
+Horror	Death/metal core, Ужасы, Хоррор -рэп
+Sunny	Лето, Пляжная, Здоровье
 Bright	Лето, Пляжная
 Hazy	Сказка, Фэнтези
 Bokeh	Вечер, Романтика, Любовь МИНУС, Ночь
