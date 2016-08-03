@@ -1,20 +1,20 @@
-Detailed 0.1 0.1 32325
-Pastel 0.1 0.1 32486
-Melancholy 0.1 0.1 4362
-Noir 0.1 0.1 25357
-HDR 0.1 0.1 20259
-Vintage 0.1 0.1 32501
-Long Exposure 0.1 0.1 32491
-Horror 0.1 0.1 32454
-Sunny 0.1 0.1 32490
-Bright 0.1 0.1 32487
-Hazy 0.1 0.1 32500
-Bokeh 0.1 0.1 32494
-Serene 0.1 0.1 32346
-Texture 0.1 0.1 32370
-Ethereal 0.1 0.1 32506
-Macro 0.1 0.1 32510
-Depth of Field 0.1 0.1 20256
-Geometric Composition 0.1 0.1 31662
-Minimal 0.1 0.1 32328
-Romantic 0.1 0.1 25739
+Detailed	Progressive
+Pastel	Весна
+Melancholy	Блюз, Рэп-лирика, Разлука
+Noir	Побег, Память
+HDR	Воспоминания
+Vintage	Сказка, Инструментальная музыка
+Long Exposure	Вечер, Ночь, Сказка, Фэнтези, Зарисовка
+Horror	Death/metal core, Ужасы
+Sunny	Лето, Пляжная
+Bright	Лето, Пляжная
+Hazy	Сказка, Фэнтези
+Bokeh	Вечер, Романтика, Любовь МИНУС, Ночь
+Serene	Downtempo Lounge, Chillout Dreams, Vocal Chillout
+Texture	Deep Tech
+Ethereal	gothic rock
+Macro	Ню-джаз, Фанк, Jazz House
+Depth of Field	Образные-Ассоциации
+Geometric Composition	Оперная Ария, Классическая
+Minimal	Minimal
+Romantic	Любовь ПЛЮС, Эротичная, Романтика, Свидание, Вечер, Просто Любовь

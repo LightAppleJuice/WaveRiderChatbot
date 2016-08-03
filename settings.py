@@ -16,6 +16,7 @@ class settings():
         self.id_vkapi = _parser.get('COMMON', 'id_vkapi')
 
         self.database_name = _parser.get('DIRS', 'database_name')
+        self.styles_codes = _parser.get('DIRS', 'styles_codes')
         self.users_name = _parser.get('DIRS', 'users_name')
         self.users_token = _parser.get('DIRS', 'users_token')
         self.log = _parser.get('DIRS', 'log')
