@@ -14,6 +14,12 @@ config = settings()
 class RequestSender:
     def __init__(self):
         self.logger = logging.getLogger('BotLogger.RequestSender')
+        self.logger.setLevel(logging.DEBUG)
+        fh = logging.FileHandler(config.log)
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        fh.setFormatter(formatter)
+        self.logger.addHandler(fh)
+
         self.matching = dict()
         self.CNNstyles = []
         self.loadMatching()
@@ -214,3 +220,5 @@ class RequestSender:
                             if not lyrics[lyr] == '':
                                 with open(path + "\\" + lyr + '.txt', "w") as text_file:
                                     text_file.write(lyrics[lyr])
+
+rs = RequestSender()
