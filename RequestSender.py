@@ -1,49 +1,55 @@
 import requests
 from settings import settings
-import Commands
+import os
+import logging
 import io
 import numpy as np
+import sys
+
+__author__ = 'g.lavrentyeva'
 
 config = settings()
 
+
 class RequestSender:
-     def __init__(self):
-         self.logger = Commands.workWithLog(config.log)
-         self.matching = dict()
-         self.CNNstyles = []
-         self.loadMatching()
+    def __init__(self):
+        self.logger = logging.getLogger('BotLogger.RequestSender')
+        self.matching = dict()
+        self.CNNstyles = []
+        self.loadMatching()
 
-     def loadMatching(self):
-         stylesCodes = {}
-         with io.open(config.styles_codes) as f_styles:
-             for line in f_styles:
-                 lineSplit = line.strip('\n').split('\t')
-                 stylesCodes[lineSplit[1]] = lineSplit[0].encode('utf-8')
+    def loadMatching(self):
+        self.logger.info('Loading Matching')
+        stylesCodes = {}
+        with io.open(config.styles_codes, encoding='cp1251') as f_styles:
+            for line in f_styles:
+                lineSplit = line.strip('\n').split('\t')
+                stylesCodes[lineSplit[1]] = lineSplit[0].encode('utf-8')
+        with io.open(config.database_name, encoding='cp1251') as file:
+            for line in file:
+                lineSplit = line.strip('\n').split('\t')
+                imgStyle = lineSplit[0]
+                muzisStyle = lineSplit[1].split(', ')
+                self.CNNstyles.append(imgStyle)
+                self.matching[imgStyle] = []
+                for s in muzisStyle:
+                    self.matching[imgStyle].append(stylesCodes[s])
+        return
 
-         with io.open(config.database_name) as file:
-             for line in file:
-                 lineSplit = line.strip('\n').split('\t')
-                 imgStyle = lineSplit[0]
-                 muzisStyle = lineSplit[1].split(', ')
-                 self.CNNstyles.append(imgStyle)
-                 self.matching[imgStyle] = []
-                 for s in muzisStyle:
-                     code = stylesCodes[s]
-                     self.matching[imgStyle].append(stylesCodes[s])
-         return
+    def parseVector(self, vector):
+        self.logger.info('Parsing Vector: ' + vector)
+        targetStyles = None
+        idx = np.argmax(vector)
+        targetStyles = self.matching[self.CNNstyles[idx]]
+        self.logger.info('Target style: ' + targetStyles)
+        return targetStyles
 
-     def parseVector(self, vector):
-         print vector
-         targetStyle = None
-         idx = np.argmax(vector)
-         targetStyles = self.matching[self.CNNstyles[idx]]
-         return targetStyles
-
-     def sendRequest(self, styles, size):
-         allLyrics = dict()
-         for currStyle in styles:
-             params = {'values': currStyle, 'size': size}
-             try:
+    def sendRequest(self, styles, size, offset=0):
+        self.logger.info('Sending Request for styles: ' + styles + ' size: ' + size + ' offset: ' + offset)
+        allLyrics = dict()
+        for currStyle in styles:
+            params = {'values': currStyle, 'size': size, 'offset': offset}
+            try:
                 r = requests.post("http://muzis.ru/api/stream_from_values.api", data=params)
                 parsed_string = r.json()
                 if r.status_code != 200:
@@ -66,40 +72,145 @@ class RequestSender:
                         if id not in allLyrics:
                             lyrics = song['lyrics'].encode('utf-8')
                             allLyrics[str(id)] = lyrics
-             except:
-                 self.logger.siteWarning()
-         return allLyrics
+            except:
+             self.logger.warning(sys.exc_info()[0])
+        return allLyrics
 
-     def getSong(self, id):
-         params = {'type': 2, 'id': id}
-         song = None
-         try:
-             r = requests.post("http://muzis.ru/api/stream_from_obj.api", data=params)
-             parsed_string = r.json()
-             if r.status_code != 200:
-                 raise Exception('Muzis exception: Bad response')
+    def sendSearchRequest(self, style, size, offset=0):
+        self.logger.info('Sending Search Request for styles: ' + style + ' size: ' + size + ' offset: ' + offset)
+        allLyrics = dict()
+        params = {'q_value': style, 'size': size, 'offset': offset, 'sort': 'id'}
+        try:
+            r = requests.post("http://muzis.ru/api/search.api", data=params)
+            parsed_string = r.json()
+            if r.status_code != 200:
+                raise Exception('Muzis exception: Bad response')
 
-             if 'error' in parsed_string:
-                 if parsed_string['error'] == 403:
-                     raise Exception('Muzis exception: Access denied')
-                 if parsed_string['error'] == 404:
-                     raise Exception('Muzis exception: Object not found')
-                 if parsed_string['error'] == 402:
-                     raise Exception('Muzis exception: Incorrect request')
-                 else:
-                     raise Exception('Muzis exception: Unknown exception')
-             else:
-                 songs = parsed_string['songs']
-                 song = songs[0]
-         except:
-             self.logger.siteWarning()
-         return song
+            if 'error' in parsed_string:
+                error = parsed_string['error']
+                if error['q_value'] == 403:
+                    raise Exception('Muzis exception: Access denied')
+                if error['q_value'] == 404:
+                    raise Exception('Muzis exception: Object not found')
+                if error['q_value'] == 402:
+                    raise Exception('Muzis exception: Incorrect request')
+                else:
+                    raise Exception('Muzis exception: Unknown exception')
+            else:
+                songs = parsed_string['songs']
+                # print songs
+                for j, song in enumerate(songs):
+                    id = song['id']
+                    if id not in allLyrics:
+                        lyrics = song['lyrics'].encode('utf-8')
+                        allLyrics[str(id)] = lyrics
+        except:
+            self.logger.warning(sys.exc_info()[0])
+        return allLyrics
 
+    def getSong(self, id):
+        self.logger.info('Sending get Song Request for id: ' + id)
+        params = {'type': 2, 'id': id}
+        song = None
+        try:
+            r = requests.post("http://muzis.ru/api/stream_from_obj.api", data=params)
+            parsed_string = r.json()
+            if r.status_code != 200:
+                raise Exception('Muzis exception: Bad response')
 
-# RS = RequestSender()
-# targetStyle = RS.parseVector([0.02495627,  0.01625971, 0.05735248,  0.03012436, 0.01382483,  0.01830654,
-#    0.02935727,  0.02657287,  0.02752874,  0.00897765,  0.01500904,  0.51215811,
-#    0.02771803,  0.23560295,  0.01554973,  0.01857543, 0.03318637,  0.17324899,
-#    0.18867876,  0.02701183])
-# lyr = RS.sendRequest(targetStyle, 3)
-#s = RS.getSong(33301)
+            if 'error' in parsed_string:
+                if parsed_string['error'] == 403:
+                    raise Exception('Muzis exception: Access denied')
+                if parsed_string['error'] == 404:
+                    raise Exception('Muzis exception: Object not found')
+                if parsed_string['error'] == 402:
+                    raise Exception('Muzis exception: Incorrect request')
+                else:
+                    raise Exception('Muzis exception: Unknown exception')
+            else:
+                songs = parsed_string['songs']
+                song = songs[0]
+        except:
+            self.logger.warning(sys.exc_info()[0])
+        return song
+
+    def getSongLyric(self, id):
+        self.logger.info('Sending get Song Lyrics Request for id: ' + id)
+        song = self.getSong(id)
+        lyrics = None
+        if song:
+            name = song['track_name']
+            params = {'q_track': name, 'sort': 'id'}
+            try:
+                r = requests.post("http://muzis.ru/api/search.api", data=params)
+                parsed_string = r.json()
+                if r.status_code != 200:
+                    raise Exception('Muzis exception: Bad response')
+
+                if 'error' in parsed_string:
+                    error = parsed_string['error']
+                    if error['q_value'] == 403:
+                        raise Exception('Muzis exception: Access denied')
+                    if error['q_value'] == 404:
+                        raise Exception('Muzis exception: Object not found')
+                    if error['q_value'] == 402:
+                        raise Exception('Muzis exception: Incorrect request')
+                    else:
+                        raise Exception('Muzis exception: Unknown exception')
+                else:
+                    songs = parsed_string['songs']
+                    # print songs
+                    for j, song in enumerate(songs):
+                        id = song['id']
+                        lyrics = song['lyrics'].encode('utf-8')
+            except:
+                self.logger.warning(sys.exc_info()[0])
+            return lyrics
+
+        else:
+            return None
+
+    def getAllStyles(self):
+        styles = [];
+        for imgStyle in self.CNNstyles:
+            styles.append(muzStyle for muzStyle in self.matching[imgStyle])
+        return styles
+
+    def saveAllLyricsByID(self, path):
+        with io.open(config.styles_codes) as f_styles:
+            #path = r'C:\ChatBot\WaveRiderChatbot\all_lyrics\\all_id'
+            if not os.path.exists(path):
+                os.makedirs(path)
+            for id in range(90000, 100000):
+                lyrics = self.getSongLyric(str(id))
+                if lyrics:
+                    if not lyrics == '':
+                        with open(path + "\\" + str(id) + '.txt', "w") as text_file:
+                            text_file.write(lyrics)
+
+    def saveAllPostersByID(self, path):
+        with io.open(config.styles_codes) as f_styles:
+            # path = r'C:\ChatBot\WaveRiderChatbot\all_lyrics\\all_id'
+            if not os.path.exists(path):
+                os.makedirs(path)
+            for id in range(1, 90000):
+                lyrics = self.getSongLyric(str(id))
+                if lyrics:
+                    if not lyrics == '':
+                        with open(path + "\\" + str(id) + '.txt', "w") as text_file:
+                            text_file.write(lyrics)
+
+    def saveAllLyricsByLang(self, path):
+        with io.open(config.styles_codes) as f_styles:
+            language = {'1104': 'russian', '125': 'english'}
+            for lan in language.keys():
+                # path = r'C:\ChatBot\WaveRiderChatbot\all_lyrics\\' + language[lan]
+                if not os.path.exists(path):
+                    os.makedirs(path)
+                for i in range(0, 50):
+                    lyrics = self.sendSearchRequest(lan, 200, i * 200)
+                    if lyrics:
+                        for lyr in lyrics.keys():
+                            if not lyrics[lyr] == '':
+                                with open(path + "\\" + lyr + '.txt', "w") as text_file:
+                                    text_file.write(lyrics[lyr])
