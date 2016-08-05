@@ -8,14 +8,14 @@ import sys
 
 __author__ = 'g.lavrentyeva'
 
-config = settings()
-
 
 class RequestSender:
     def __init__(self):
+        self.config = settings()
+
         self.logger = logging.getLogger('BotLogger.RequestSender')
         self.logger.setLevel(logging.DEBUG)
-        fh = logging.FileHandler(config.log)
+        fh = logging.FileHandler(self.config.log)
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         fh.setFormatter(formatter)
         self.logger.addHandler(fh)
@@ -28,11 +28,11 @@ class RequestSender:
     def loadMatching(self):
         self.logger.info('Loading Matching')
         stylesCodes = {}
-        with io.open(config.styles_codes, encoding='cp1251') as f_styles:
+        with io.open(self.config.styles_codes, encoding='cp1251') as f_styles:
             for line in f_styles:
                 lineSplit = line.strip('\n').split('\t')
                 stylesCodes[lineSplit[1]] = lineSplit[0].encode('utf-8')
-        with io.open(config.database_name, encoding='cp1251') as file:
+        with io.open(self.config.database_name, encoding='cp1251') as file:
             for line in file:
                 lineSplit = line.strip('\n').split('\t')
                 imgStyle = lineSplit[0]
