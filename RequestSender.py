@@ -5,6 +5,7 @@ import logging
 import io
 import numpy as np
 import sys
+import urllib2
 
 __author__ = 'g.lavrentyeva'
 
@@ -184,42 +185,14 @@ class RequestSender:
 
         else:
             return None
-    #TODO:
+
     def getSongPoster(self, id):
         self.logger.info('Sending get Song Poster Request for id: ' + str(id))
         song = self.getSong(id)
-        lyrics = None
+        poster = None
         if song:
-            name = song['track_name']
-            params = {'q_track': name, 'sort': 'id'}
-            try:
-                r = requests.post("http://muzis.ru/api/search.api", data=params)
-                parsed_string = r.json()
-                if r.status_code != 200:
-                    raise Exception('Muzis exception: Bad response')
-
-                if 'error' in parsed_string:
-                    error = parsed_string['error']
-                    if error['q_value'] == 403:
-                        raise Exception('Muzis exception: Access denied')
-                    if error['q_value'] == 404:
-                        raise Exception('Muzis exception: Object not found')
-                    if error['q_value'] == 402:
-                        raise Exception('Muzis exception: Incorrect request')
-                    else:
-                        raise Exception('Muzis exception: Unknown exception')
-                else:
-                    songs = parsed_string['songs']
-                    # print songs
-                    for j, song in enumerate(songs):
-                        id = song['id']
-                        lyrics = song['lyrics'].encode('utf-8')
-            except:
-                self.logger.warning(sys.exc_info()[0])
-            return lyrics
-
-        else:
-            return None
+            poster = urllib2.urlopen('http://f.muzis.ru/' + song['poster']).read()
+        return poster
 
     def getAllStyles(self):
         self.logger.info('Getting all using styles.')
@@ -230,7 +203,7 @@ class RequestSender:
 
     def saveAllLyricsByID(self, path):
         self.logger.info('Saving all lyrics by id.')
-        with io.open(config.styles_codes) as f_styles:
+        with io.open(self.config.styles_codes) as f_styles:
             #path = r'C:\ChatBot\WaveRiderChatbot\all_lyrics\\all_id'
             if not os.path.exists(path):
                 os.makedirs(path)
@@ -241,22 +214,21 @@ class RequestSender:
                         with open(path + "\\" + str(id) + '.txt', "w") as text_file:
                             text_file.write(lyrics)
 
-    #TODO:
     def saveAllPostersByID(self, path):
         self.logger.info('Saving all posters by id.')
-        with io.open(config.styles_codes) as f_styles:
+        with io.open(self.config.styles_codes) as f_styles:
             # path = r'C:\ChatBot\WaveRiderChatbot\all_lyrics\\all_id'
             if not os.path.exists(path):
                 os.makedirs(path)
             for id in range(1, 50000):
                 img = self.getSongPoster(str(id))
                 if img:
-                    with open(path + "\\" + str(id) + '.jpg', "w") as img_file:
+                    with open(path + "\\" + str(id) + '.jpg', 'wb') as img_file:
                         img_file.write(img)
 
     def saveAllLyricsByLang(self, path):
         self.logger.info('Saving all lyrics by language.')
-        with io.open(config.styles_codes) as f_styles:
+        with io.open(self.config.styles_codes) as f_styles:
             language = {'1104': 'russian', '125': 'english'}
             for lan in language.keys():
                 # path = r'C:\ChatBot\WaveRiderChatbot\all_lyrics\\' + language[lan]
