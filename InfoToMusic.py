@@ -25,10 +25,10 @@ class InfoToMusic:
         self.imgFilePath = ''
         self.songFilePath = ''
 
-    def process(self, img, text):
-        if img:
+    def process(self):
+        if len(self.userImage) != 0:
             self.logger.info('Process users image.')
-        elif text:
+        elif len(self.userText) != 0:
             self.logger.info('Process users text.')
         else:
             self.logger.warning('No text no image to process')

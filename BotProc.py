@@ -68,19 +68,41 @@ class MusicBot:
             strToFind = 'https:.+access_token=(.+)\&expires_in=.+'
 
             if u"Опубликовать в VK" == message.text:
-                self.logger.info('From user: VK Publication request')
+                self.logger.info('From user: VK Publication request.')
             elif 'https' in message.text:
-                self.logger.info('From user: VK Authorization request')
+                self.logger.info('From user: VK Authorization request.')
             elif u"Хочу еще" == message.text:
-                self.logger.info('From user: One more request')
+                self.logger.info('From user: One more request.')
             elif u"Отмена" == message.text:
-                self.logger.info('From user: Cancel request')
+                self.logger.info('From user: Cancel request.')
+                self.bot.send_message(chat_id=message.chat.id,
+                                      text='Прости, что не получилось. Может попробуем еще раз?\n'
+                                           'Отправь мне фотографию или текст.',
+                                      reply_markup=telebot.types.ReplyKeyboardHide())
+
+                # TODO: delete saved images?
+                self.infoProcessors[message.chat.id].clearAll()
+                del self.infoProcessors[message.chat.id]
+                self.logger.info('All data for id ' + str(message.chat.id) + ' were cleared.')
+
             else:
                 self.logger.info('From user: Text description')
+                text = message.text.encode("utf-8")
+
+                # Create new InfoToMusic for new chat_id
+                self.logger.info('Creating new InfoToMusic for new chat_id')
+                if message.chat.id not in self.infoProcessors.keys():
+                    self.infoProcessors[message.chat.id] = InfoToMusic()
+
+                self.infoProcessors[message.chat.id].userText = text
+                self.infoProcessors[message.chat.id].process()
+
+
+
 
         @self.bot.message_handler(func=lambda message: True, content_types=['photo'])
         def get_image(message):
-            self.logger.info('Loading Users image')
+            self.logger.info('From user: Image')
             self.bot.send_chat_action(message.chat.id, "upload_photo")
 
             height_list = []
@@ -96,10 +118,9 @@ class MusicBot:
             if message.chat.id not in self.infoProcessors.keys():
                 self.infoProcessors[message.chat.id] = InfoToMusic()
 
+            # Saving image
             newImgPath = os.path.join(self.imgPath, str(message.chat.id))
             photo_name = os.path.join(newImgPath, os.path.basename(file_info.file_path))
-
-            # Saving image
             if not os.path.isdir(self.imgPath):
                 os.mkdir(self.imgPath)
             if not os.path.isdir(newImgPath):
@@ -113,6 +134,7 @@ class MusicBot:
             img = np.array(Image.open(photo_name))
             self.infoProcessors[message.chat.id].userImage = img
             self.infoProcessors[message.chat.id].imgFilePath = photo_name
+            self.infoProcessors[message.chat.id].process()
 
 
     def generate_markup(self):
