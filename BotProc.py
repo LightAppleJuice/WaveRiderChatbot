@@ -1,7 +1,9 @@
+#! /usr/bin/env python
+# -*- coding: utf-8 -*-
+
 # Main Bot Class
 
-# coding=UTF-8
-import json  # Представляет словарь в строку
+import json  #Представляет словарь в строку
 import os  # Для проверки на существование файла
 import requests  # Для осуществления запросов
 import urllib  # Для загрузки картинки с сервера
@@ -20,6 +22,7 @@ from settings import settings
 import telebot
 from re import findall
 import logging
+from InfoToMusic import InfoToMusic
 
 class MusicBot:
     def __init__(self):
@@ -30,8 +33,9 @@ class MusicBot:
         #self.users_id = self.read_users(self.config.users_token)
         self.link = "https://oauth.vk.com/authorize?\
         client_id= %s&display=mobile&scope=wall,offline,audio,photos&response_type=token&v=5.45" % self.config.id_vkapi
-        self.imgPath = '/home/andrew/Projects/WaveRiderChatbot/photos/tmp.jpg'
-        self.mp3Path = '/home/andrew/Projects/WaveRiderChatbot/music/{}.mp3'
+        self.imgPath = 'C:\ChatBot\WaveRiderChatbot\photos\userPhoto'#'/home/andrew/Projects/WaveRiderChatbot/'
+        self.mp3Path = '/home/andrew/Projects/WaveRiderChatbot/music/'
+        self.infoProcessors = {}
 
         # Logger initialization
         self.logger = logging.getLogger('BotLogger')
@@ -76,7 +80,36 @@ class MusicBot:
 
         @self.bot.message_handler(func=lambda message: True, content_types=['photo'])
         def get_image(message):
-            self.logger.info('Got Img')
+            self.logger.info('Loading Users image')
+            self.bot.send_chat_action(message.chat.id, "upload_photo")
+
+            height_list = []
+            for ph in message.photo:
+                height_list.append(ph.height)
+            photo_ind = np.argmax(height_list)
+
+            file_info = self.bot.get_file(message.photo[photo_ind].file_id)
+            file = requests.get('https://api.telegram.org/file/bot{0}/{1}'.format(self.config.bot_token, file_info.file_path))
+
+            # Create new InfoToMusic for new chat_id
+            if message.chat.id not in self.infoProcessors.keys():
+                self.infoProcessors[message.chat.id] = InfoToMusic()
+
+            newImgPath = os.path.join(self.imgPath, str(message.chat.id))
+            fname = os.path.basename(file_info.file_path)
+            photo_name = os.path.join(newImgPath, os.path.basename(file_info.file_path))
+
+            if not os.path.isdir(self.imgPath):
+                os.mkdir(self.imgPath)
+            if not os.path.isdir(newImgPath):
+                os.mkdir(newImgPath)
+            f = open(photo_name, 'wb')
+            f.write(file.content)
+            f.close()
+            self.logger.info('Image saved: ' + photo_name)
+
+            img = np.array(Image.open(photo_name))
+            self.infoProcessors[message.chat.id].userImage = img
 
     def generate_markup(self):
         markup = telebot.types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
@@ -85,7 +118,7 @@ class MusicBot:
         markup.add('Отмена')
         return markup
 
-    def read_users(pathToBase=''):
+    def read_users(self, pathToBase=''):
         res = {}
         if os.path.isfile(pathToBase):
             with open(pathToBase, 'r') as base:
@@ -104,6 +137,6 @@ class MusicBot:
 
 
 
-# if __name__ == '__main__':
-#     Bot = MusicBot()
-#     Bot.process()
+if __name__ == '__main__':
+    Bot = MusicBot()
+    Bot.process()

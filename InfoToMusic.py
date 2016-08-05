@@ -2,9 +2,10 @@
 __author__ = 'g.lavrentyeva'
 
 import logging
-import settings
+from settings import settings
 #import TextProcessing
 #import ImageProcessing
+
 
 class InfoToMusic:
     def __init__(self):
