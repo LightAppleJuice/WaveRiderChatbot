@@ -24,6 +24,7 @@ class InfoToMusic:
         self.userText = ''
         self.imgFilePath = ''
         self.songFilePath = ''
+        self.relevantSongs = []
 
     def process(self):
         if len(self.userImage) != 0:
