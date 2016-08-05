@@ -76,7 +76,7 @@ class MusicBot:
             elif u"Отмена" == message.text:
                 self.logger.info('From user: Cancel request')
             else:
-                self.logger.info('From user: CText description')
+                self.logger.info('From user: Text description')
 
         @self.bot.message_handler(func=lambda message: True, content_types=['photo'])
         def get_image(message):
@@ -92,13 +92,14 @@ class MusicBot:
             file = requests.get('https://api.telegram.org/file/bot{0}/{1}'.format(self.config.bot_token, file_info.file_path))
 
             # Create new InfoToMusic for new chat_id
+            self.logger.info('Creating new InfoToMusic for new chat_id')
             if message.chat.id not in self.infoProcessors.keys():
                 self.infoProcessors[message.chat.id] = InfoToMusic()
 
             newImgPath = os.path.join(self.imgPath, str(message.chat.id))
-            fname = os.path.basename(file_info.file_path)
             photo_name = os.path.join(newImgPath, os.path.basename(file_info.file_path))
 
+            # Saving image
             if not os.path.isdir(self.imgPath):
                 os.mkdir(self.imgPath)
             if not os.path.isdir(newImgPath):
@@ -108,8 +109,11 @@ class MusicBot:
             f.close()
             self.logger.info('Image saved: ' + photo_name)
 
+            # Filling fields in appropriate InfoToMusic
             img = np.array(Image.open(photo_name))
             self.infoProcessors[message.chat.id].userImage = img
+            self.infoProcessors[message.chat.id].imgFilePath = photo_name
+
 
     def generate_markup(self):
         markup = telebot.types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)

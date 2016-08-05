@@ -22,6 +22,8 @@ class InfoToMusic:
         #self.imgProc = ImageProcessing()
         self.userImage = []
         self.userText = ''
+        self.imgFilePath = ''
+        self.songFilePath = ''
 
     def process(self, img, text):
         if img:
@@ -31,4 +33,10 @@ class InfoToMusic:
         else:
             self.logger.warning('No text no image to process')
         return
+
+    def clearAll(self):
+        self.imgFilePath = ''
+        self.userImage = []
+        self.userText = ''
+        self.songFilePath = ''
 
