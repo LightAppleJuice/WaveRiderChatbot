@@ -12,10 +12,9 @@ import time  # Представляет время в читаемый форм�
 import vk
 import numpy as np
 from PIL import Image
-#import caffe
 import requests
 import TextMatcher
-from RequestSender import RequestSender
+import RequestSender
 import urllib2
 import random
 from settings import settings
@@ -24,6 +23,7 @@ from re import findall
 import logging
 from InfoToMusic import InfoToMusic
 from poster import poster
+from image_processing import ImageProcessor
 from TextMatcher import TextModels
 from TextMatcher import TextProcessing
 
@@ -41,10 +41,8 @@ class MusicBot:
         self.mp3Path = '/home/andrew/Projects/WaveRiderChatbot/music/'
         self.infoProcessors = {}
 
-        # Loading models
-        # TODO
+        self.image_processor = ImageProcessor()
         self.textModels = TextModels(self.config.w2vec_model, self.config.w2vec_dict, self.config.eng_rus_dict)
-        self.imageModels = []
 
         # Logger initialization
         self.logger = logging.getLogger('BotLogger')
@@ -54,7 +52,7 @@ class MusicBot:
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         fh.setFormatter(formatter)
         self.logger.addHandler(fh)
-        rs = RequestSender()
+        rs = RequestSender.RequestSender()
         self.allLyrics = rs.getAllLyricsByStyles(rs.getAllStyles())
         self.logger.info('Translating all lyrics...')
         for currSongId in self.allLyrics.keys():
@@ -147,45 +145,39 @@ class MusicBot:
                 self.infoProcessors[message.chat.id].userText = text
                 self.infoProcessors[message.chat.id].process()
 
-
-
-
         @self.bot.message_handler(func=lambda message: True, content_types=['photo'])
         def get_image(message):
             self.logger.info('From user: Image')
             self.bot.send_chat_action(message.chat.id, "upload_photo")
 
+            # Get biggest photo
             height_list = []
             for ph in message.photo:
                 height_list.append(ph.height)
             photo_ind = np.argmax(height_list)
 
             file_info = self.bot.get_file(message.photo[photo_ind].file_id)
-            file = requests.get('https://api.telegram.org/file/bot{0}/{1}'.format(self.config.bot_token, file_info.file_path))
+            photo_file = requests.get('https://api.telegram.org/file/bot{0}/{1}'.format(self.config.bot_token, file_info.file_path))
 
             # Create new InfoToMusic for new chat_id
             self.logger.info('Creating new InfoToMusic for new chat_id')
             if message.chat.id not in self.infoProcessors.keys():
-                self.infoProcessors[message.chat.id] = InfoToMusic(self.textProcModels, self.imageProcModels)
+                self.infoProcessors[message.chat.id] = InfoToMusic(self.textProcModels, self.image_processor)
 
             # Saving image
-            newImgPath = os.path.join(self.imgPath, str(message.chat.id))
-            photo_name = os.path.join(newImgPath, os.path.basename(file_info.file_path))
-            if not os.path.isdir(self.imgPath):
-                os.mkdir(self.imgPath)
-            if not os.path.isdir(newImgPath):
-                os.mkdir(newImgPath)
-            f = open(photo_name, 'wb')
-            f.write(file.content)
-            f.close()
-            self.logger.info('Image saved: ' + photo_name)
+            self.infoProcessors[message.chat.id].save_photo(photo_file)
 
             # Filling fields in appropriate InfoToMusic
-            img = np.array(Image.open(photo_name))
-            self.infoProcessors[message.chat.id].userImage = img
-            self.infoProcessors[message.chat.id].imgFilePath = photo_name
             self.infoProcessors[message.chat.id].process()
 
+            # Send song
+            song, file_mp3 = self.infoProcessors[message.chat.id].get_song()
+            self.send_music(message.chat.id, file_mp3, song['track_name'])
+
+    def send_music(self, user_id, file_mp3, title):
+        self.bot.send_chat_action(user_id, 'upload_audio')
+        with open(file_mp3, 'rb') as audio:
+            self.bot.send_audio(user_id, audio, title='%s' % title, timeout=1000, reply_markup=self.generate_markup())
 
     def generate_markup(self):
         markup = telebot.types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
