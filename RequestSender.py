@@ -91,7 +91,7 @@ class RequestSender:
                                 lyrics = song['lyrics'].encode('utf-8')
                                 allLyrics[str(id)] = name, lyrics
                 except:
-                    self.logger.warning('sendRequest():' + sys.exc_info()[0])
+                    self.logger.warning('sendRequest():' + str(sys.exc_info()[0]))
         return allLyrics
 
     # Only for downloading all lyrics
@@ -124,7 +124,7 @@ class RequestSender:
                         lyrics = song['lyrics'].encode('utf-8')
                         allLyrics[str(id)] = lyrics
         except:
-            self.logger.warning('sendSearchRequest(): 'sys.exc_info()[0])
+            self.logger.warning('sendSearchRequest(): ' + sys.exc_info()[0])
         return allLyrics
 
     # Get song by id
@@ -255,13 +255,15 @@ class RequestSender:
                                     text_file.write(lyrics[lyr])
         return
 
-    def getAllLyricsByStyles(self, styles, size):
-        allLyrics = self.getAllLyricsByStyles(styles, size, 2)
+    def getAllLyricsByStyles(self, styles):
+        batchSize = 200
+        allLyrics = self.sendRequest(styles, batchSize, 2)
         return allLyrics
 
 
 # test
 # rs = RequestSender()
+# d = rs.getAllLyricsByStyles(rs.getAllStyles(), 200)
 # rs.saveAllPostersByID(r'C:\ChatBot\WaveRiderChatbot\all_posters\all_id')
 # st = rs.parseVector([0.02495627,  0.01625971, 0.05735248,  0.03012436, 0.01382483,  0.01830654,
 #                        0.02935727,  0.02657287,  0.02752874,  0.00897765,  0.01500904,  0.51215811,
