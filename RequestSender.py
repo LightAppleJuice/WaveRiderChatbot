@@ -270,8 +270,8 @@ class RequestSender:
 
 
 # test
-rs = RequestSender()
-d = rs.getAllLyricsByStyles(rs.getAllStyles())
+# rs = RequestSender()
+# d = rs.getAllLyricsByStyles(rs.getAllStyles())
 # rs.saveAllPostersByID(r'C:\ChatBot\WaveRiderChatbot\all_posters\all_id')
 # st = rs.parseVector([0.02495627,  0.01625971, 0.05735248,  0.03012436, 0.01382483,  0.01830654,
 #                        0.02935727,  0.02657287,  0.02752874,  0.00897765,  0.01500904,  0.51215811,
