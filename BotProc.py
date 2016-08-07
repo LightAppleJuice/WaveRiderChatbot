@@ -23,6 +23,7 @@ import telebot
 from re import findall
 import logging
 from InfoToMusic import InfoToMusic
+from poster import poster
 
 class MusicBot:
     def __init__(self):
@@ -69,8 +70,34 @@ class MusicBot:
 
             if u"Опубликовать в VK" == message.text:
                 self.logger.info('From user: VK Publication request.')
+                if not usersClass.findUser(chatId=message.chat.id):
+                    keyboard = telebot.types.InlineKeyboardMarkup()
+                    url_button = telebot.types.InlineKeyboardButton(text="Перейти в VK", url=self.link)
+                    keyboard.add(url_button)
+                    self.bot.send_message(chat_id=message.chat.id,
+                                     text='Прости {0}, но я не смогу обновить твою стену, '
+                                          'пока ты не пришлешь мне текст из адресной строки, '
+                                          'после перехода по ссылке:'
+                                     .format('\xF0\x9F\x98\x94'), reply_markup=keyboard)
+                else:
+                    usersClass.post(pathToMusic=self.music_name, pathToImage=self.photo_name, text=self.text)
+                    self.bot.send_message(chat_id=message.chat.id,
+                                          text='Отлично! Не будем останавливаться)\n'
+                                               'Отправь мне фотографию или текст.', reply_markup=self.generate_markup())
             elif 'https' in message.text:
                 self.logger.info('From user: VK Authorization request.')
+                usersClass.addUser(message)
+                if not usersClass.findUser(message.chat.id):
+                    self.bot.send_message(chat_id=message.chat.id,
+                                          text='Не могу найти токен.\n '
+                                               'Проверь, пожалуйста, скопированную строку и пришли мне ее еще раз')
+                else:
+                    self.bot.send_message(chat_id=message.chat.id,
+                                          text='Приветствую тебя, пользователь')
+                    usersClass.post(pathToMusic=self.music_name, pathToImage=self.photo_name, text=self.text)
+                    self.bot.send_message(chat_id=message.chat.id,
+                                          text='Отлично! Не будем останавливаться)\n'
+                                               'Отправь мне фотографию или текст.', reply_markup=self.generate_markup())
             elif u"Хочу еще" == message.text:
                 self.logger.info('From user: One more request.')
             elif u"Отмена" == message.text:
@@ -154,15 +181,8 @@ class MusicBot:
     def process(self):
         self.bot.polling(none_stop=True)
 
-    # TODO:
-    def make_post(token='', imgPath='', mp3Path=''):
-        if not imgPath:
-            imgPath = self.imgPath
-        if not mp3Path:
-            mp3Path = self.mp3Path
-
-
 
 if __name__ == '__main__':
     Bot = MusicBot()
+    usersClass = poster()
     Bot.process()
