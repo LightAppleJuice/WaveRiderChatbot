@@ -90,8 +90,10 @@ class RequestSender:
                                 name = song['track_name'].encode('utf-8')
                                 lyrics = song['lyrics'].encode('utf-8')
                                 allLyrics[str(id)] = name, lyrics
+                except Exception as inst:
+                    self.logger.warning('sendRequest(): ' + str(inst.message))
                 except:
-                    self.logger.warning('sendRequest():' + str(sys.exc_info()[0]))
+                    self.logger.warning('sendRequest(): ' + str(sys.exc_info()[0]))
         return allLyrics
 
     # Only for downloading all lyrics
@@ -123,8 +125,10 @@ class RequestSender:
                     if id not in allLyrics:
                         lyrics = song['lyrics'].encode('utf-8')
                         allLyrics[str(id)] = lyrics
+        except Exception as inst:
+            self.logger.warning('sendSearchRequest(): ' + str(inst.message))
         except:
-            self.logger.warning('sendSearchRequest(): ' + sys.exc_info()[0])
+            self.logger.warning('sendSearchRequest(): ' + str(sys.exc_info()[0]))
         return allLyrics
 
     # Get song by id
@@ -151,8 +155,10 @@ class RequestSender:
             else:
                 songs = parsed_string['songs']
                 song = songs[0]
+        except Exception as inst:
+            self.logger.warning('getSong(): ' + str(inst.message))
         except:
-            self.logger.warning('getSong()' + sys.exc_info()[0])
+            self.logger.warning('getSong(): ' + str(sys.exc_info()[0]))
         return song
 
     def getSongLyric(self, id):
@@ -184,8 +190,10 @@ class RequestSender:
                     for j, song in enumerate(songs):
                         id = song['id']
                         lyrics = song['lyrics'].encode('utf-8')
+            except Exception as inst:
+                self.logger.warning('getSongLyric(): ' + str(inst.message))
             except:
-                self.logger.warning('getSongLyric' + sys.exc_info()[0])
+                self.logger.warning('getSongLyric(): ' + str(sys.exc_info()[0]))
             return lyrics
 
         else:
@@ -262,8 +270,8 @@ class RequestSender:
 
 
 # test
-# rs = RequestSender()
-# d = rs.getAllLyricsByStyles(rs.getAllStyles(), 200)
+rs = RequestSender()
+d = rs.getAllLyricsByStyles(rs.getAllStyles())
 # rs.saveAllPostersByID(r'C:\ChatBot\WaveRiderChatbot\all_posters\all_id')
 # st = rs.parseVector([0.02495627,  0.01625971, 0.05735248,  0.03012436, 0.01382483,  0.01830654,
 #                        0.02935727,  0.02657287,  0.02752874,  0.00897765,  0.01500904,  0.51215811,
