@@ -190,7 +190,7 @@ class TextModels:
         sent = sent.decode('utf-8').lower().encode('utf-8')
         sent = re.sub(r"[/\\\.,\?!\":;\(\)\*#\'\d]", " ", sent)
         sent = re.sub("\-\s+", " ", sent)
-        if self.eng_rus_path:
+        if self.eng_rus_path and len(re.findall(u"[а-яА-я]", sent.decode("utf-8"))) < 20:
             sent = self.translate_eng_to_rus(sent)
         sent = re.sub("[a-z]", "", sent)
         sent = re.sub("\s+", " ", sent)
