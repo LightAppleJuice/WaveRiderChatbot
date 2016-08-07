@@ -56,37 +56,42 @@ class RequestSender:
 
     # Send request by list of styles
     # Return dictionary with structure id: (track_name, lyrics)
-    def sendRequest(self, styles, size, offset=0):
-        self.logger.info('Sending Request for styles: ' + str(styles) + ' size: ' + str(size) + ' offset: ' + str(offset))
+    def sendRequest(self, styles, size, offsetNum = 1):
+        self.logger.info('Sending Request for styles: ' + str(styles) + ' size: ' + str(size) + ' offset: ' + str(offsetNum))
         allLyrics = dict()
         for currStyle in styles:
-            params = {'values': currStyle, 'size': size, 'offset': offset}
-            try:
-                r = requests.post("http://muzis.ru/api/stream_from_values.api", data=params)
-                parsed_string = r.json()
-                if r.status_code != 200:
-                    raise Exception('Muzis exception: Bad response')
-
-                if 'error' in parsed_string:
-                    if parsed_string['error'] == 403:
-                        raise Exception('Muzis exception: Access denied')
-                    if parsed_string['error'] == 404:
-                        raise Exception('Muzis exception: Object not found')
-                    if parsed_string['error'] == 402:
-                        raise Exception('Muzis exception: Incorrect request')
-                    else:
-                        raise Exception('Muzis exception: Unknown exception')
+            for offsetIdx in range(1, offsetNum):
+                if offsetNum > 1:
+                    offset = (size * offsetIdx) + 1
                 else:
-                    songs = parsed_string['songs']
-                    # print songs
-                    for j, song in enumerate(songs):
-                        id = song['id']
-                        if id not in allLyrics:
-                            name = song['track_name'].encode('utf-8')
-                            lyrics = song['lyrics'].encode('utf-8')
-                            allLyrics[str(id)] = name, lyrics
-            except:
-                self.logger.warning(sys.exc_info()[0])
+                    offset = 0
+                params = {'values': currStyle, 'size': size, 'offset': offset}
+                try:
+                    r = requests.post("http://muzis.ru/api/stream_from_values.api", data=params)
+                    parsed_string = r.json()
+                    if r.status_code != 200:
+                        raise Exception('Muzis exception: Bad response')
+
+                    if 'error' in parsed_string:
+                        if parsed_string['error'] == 403:
+                            raise Exception('Muzis exception: Access denied')
+                        if parsed_string['error'] == 404:
+                            raise Exception('Muzis exception: Object not found')
+                        if parsed_string['error'] == 402:
+                            raise Exception('Muzis exception: Incorrect request')
+                        else:
+                            raise Exception('Muzis exception: Unknown exception')
+                    else:
+                        songs = parsed_string['songs']
+                        # print songs
+                        for j, song in enumerate(songs):
+                            id = song['id']
+                            if id not in allLyrics:
+                                name = song['track_name'].encode('utf-8')
+                                lyrics = song['lyrics'].encode('utf-8')
+                                allLyrics[str(id)] = name, lyrics
+                except:
+                    self.logger.warning('sendRequest():' + sys.exc_info()[0])
         return allLyrics
 
     # Only for downloading all lyrics
@@ -119,7 +124,7 @@ class RequestSender:
                         lyrics = song['lyrics'].encode('utf-8')
                         allLyrics[str(id)] = lyrics
         except:
-            self.logger.warning(sys.exc_info()[0])
+            self.logger.warning('sendSearchRequest(): 'sys.exc_info()[0])
         return allLyrics
 
     # Get song by id
@@ -147,7 +152,7 @@ class RequestSender:
                 songs = parsed_string['songs']
                 song = songs[0]
         except:
-            self.logger.warning(sys.exc_info()[0])
+            self.logger.warning('getSong()' + sys.exc_info()[0])
         return song
 
     def getSongLyric(self, id):
@@ -180,7 +185,7 @@ class RequestSender:
                         id = song['id']
                         lyrics = song['lyrics'].encode('utf-8')
             except:
-                self.logger.warning(sys.exc_info()[0])
+                self.logger.warning('getSongLyric' + sys.exc_info()[0])
             return lyrics
 
         else:
@@ -216,6 +221,7 @@ class RequestSender:
                     if not lyrics == '':
                         with open(path + "\\" + str(id) + '.txt', "w") as text_file:
                             text_file.write(lyrics)
+        return
 
     def saveAllPostersByID(self, path):
         self.logger.info('Saving all posters by id.')
@@ -230,6 +236,7 @@ class RequestSender:
                     print str(id)
                     with open(path + "\\" + str(id) + '.jpg', 'wb') as img_file:
                         img_file.write(img)
+        return
 
     def saveAllLyricsByLang(self, path):
         self.logger.info('Saving all lyrics by language.')
@@ -246,6 +253,12 @@ class RequestSender:
                             if not lyrics[lyr] == '':
                                 with open(path + "\\" + lyr + '.txt', "w") as text_file:
                                     text_file.write(lyrics[lyr])
+        return
+
+    def getAllLyricsByStyles(self, styles, size):
+        allLyrics = self.getAllLyricsByStyles(styles, size, 2)
+        return allLyrics
+
 
 # test
 # rs = RequestSender()
