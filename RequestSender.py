@@ -186,12 +186,15 @@ class RequestSender:
         else:
             return None
 
-    def getSongPoster(self, id):
+    def getSongPoster(self, id, posterNames):
         self.logger.info('Sending get Song Poster Request for id: ' + str(id))
         song = self.getSong(id)
         poster = None
         if song:
-            poster = urllib2.urlopen('http://f.muzis.ru/' + song['poster']).read()
+            if song['poster']:
+                if str(song['poster']) not in posterNames:
+                    posterNames.append(str(song['poster']))
+                    poster = urllib2.urlopen('http://f.muzis.ru/' + str(song['poster'])).read()
         return poster
 
     def getAllStyles(self):
@@ -216,13 +219,15 @@ class RequestSender:
 
     def saveAllPostersByID(self, path):
         self.logger.info('Saving all posters by id.')
+        allPostersNames = []
         with io.open(self.config.styles_codes) as f_styles:
             # path = r'C:\ChatBot\WaveRiderChatbot\all_lyrics\\all_id'
             if not os.path.exists(path):
                 os.makedirs(path)
             for id in range(1, 50000):
-                img = self.getSongPoster(str(id))
+                img = self.getSongPoster(str(id), allPostersNames)
                 if img:
+                    print str(id)
                     with open(path + "\\" + str(id) + '.jpg', 'wb') as img_file:
                         img_file.write(img)
 
@@ -244,6 +249,7 @@ class RequestSender:
 
 # test
 # rs = RequestSender()
+# rs.saveAllPostersByID(r'C:\ChatBot\WaveRiderChatbot\all_posters\all_id')
 # st = rs.parseVector([0.02495627,  0.01625971, 0.05735248,  0.03012436, 0.01382483,  0.01830654,
 #                        0.02935727,  0.02657287,  0.02752874,  0.00897765,  0.01500904,  0.51215811,
 #                        0.02771803,  0.23560295,  0.01554973,  0.01857543, 0.03318637,  0.17324899,
