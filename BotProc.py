@@ -15,7 +15,7 @@ from PIL import Image
 #import caffe
 import requests
 import TextMatcher
-import RequestSender
+from RequestSender import RequestSender
 import urllib2
 import random
 from settings import settings
@@ -24,6 +24,7 @@ from re import findall
 import logging
 from InfoToMusic import InfoToMusic
 from poster import poster
+from TextMatcher import TextModels
 
 class MusicBot:
     def __init__(self):
@@ -41,8 +42,8 @@ class MusicBot:
 
         # Loading models
         # TODO
-        self.textProcModels = []
-        self.imageProcModels = []
+        self.textModels = TextModels(self.config.w2vec_model, self.config.w2vec_dict, self.config.eng_rus_dict)
+        self.imageModels = []
 
         # Logger initialization
         self.logger = logging.getLogger('BotLogger')
@@ -54,6 +55,11 @@ class MusicBot:
         self.logger.addHandler(fh)
         rs = RequestSender()
         self.allLyrics = rs.getAllLyricsByStyles(rs.getAllStyles())
+        for currSong in self.allLyrics.keys():
+            a = self.textModels.preprocess_sentence(self.allLyrics[currSong][0])
+            b = self.textModels.preprocess_sentence(self.allLyrics[currSong][1])
+
+
 
         # Bot messages
         @self.bot.message_handler(commands=['start'])

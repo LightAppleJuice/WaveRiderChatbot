@@ -20,3 +20,6 @@ class settings():
         self.users_name = _parser.get('DIRS', 'users_name')
         self.users_token = _parser.get('DIRS', 'users_token')
         self.log = _parser.get('DIRS', 'log')
+        self.w2vec_model = _parser.get('DIRS', 'w2v_model')
+        self.w2vec_dict = _parser.get('DIRS', 'w2v_dict')
+        self.eng_rus_dict = _parser.get('DIRS', 'eng_rus_dict')
