@@ -25,6 +25,7 @@ import logging
 from InfoToMusic import InfoToMusic
 from poster import poster
 from TextMatcher import TextModels
+from TextMatcher import TextProcessing
 
 class MusicBot:
     def __init__(self):
@@ -55,9 +56,17 @@ class MusicBot:
         self.logger.addHandler(fh)
         rs = RequestSender()
         self.allLyrics = rs.getAllLyricsByStyles(rs.getAllStyles())
-        for currSong in self.allLyrics.keys():
-            a = self.textModels.preprocess_sentence(self.allLyrics[currSong][0])
-            b = self.textModels.preprocess_sentence(self.allLyrics[currSong][1])
+        self.logger.info('Translating all lyrics...')
+        for currSongId in self.allLyrics.keys():
+            song_name_translated = self.textModels.preprocess_sentence(self.allLyrics[currSongId][0])
+            song_text_translated = self.textModels.preprocess_sentence(self.allLyrics[currSongId][1])
+            self.allLyrics[currSongId] = song_name_translated, song_text_translated
+
+        self.logger.info('Transform all lyrics to vectors...')
+        textProp = TextProcessing(self.textModels)
+        textProp.text_dict_to_vec_dict(self.allLyrics)
+        return
+
 
 
 

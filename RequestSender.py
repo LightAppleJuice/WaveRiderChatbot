@@ -264,6 +264,7 @@ class RequestSender:
         return
 
     def getAllLyricsByStyles(self, styles):
+        self.logger.info('Getting all lyrics...')
         batchSize = 200
         allLyrics = self.sendRequest(styles, batchSize, 2)
         return allLyrics

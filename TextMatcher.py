@@ -221,7 +221,15 @@ class TextProcessing:
         sent_vec = np.average(word_vecs, axis=1)
         return sent_vec.T
 
+    def text_dict_to_vec_dict(self, text_dict):
+        for songIdx in text_dict.keys():
+            song_name_vec = self.text_to_vec(text_dict[songIdx][0])
+            song_text_vec = self.text_to_vec(text_dict[songIdx][1])
+            text_dict[songIdx] = song_name_vec, song_text_vec
+        return
+
     def calc_scores(self, text_to_cmp, list_of_texts):
+        # TODO: обрабатывать list_of_vect
         vec_to_cmp = self.text_to_vec(text_to_cmp)
         vec_to_cmp = np.reshape(vec_to_cmp, [1, len(vec_to_cmp)])
         list_of_vecs = []
