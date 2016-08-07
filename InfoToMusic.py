@@ -8,7 +8,7 @@ from settings import settings
 
 
 class InfoToMusic:
-    def __init__(self):
+    def __init__(self, _textProcModels, _imageProcModels):
         self.config = settings()
 
         self.logger = logging.getLogger('BotLogger.InfoToMusic')
@@ -18,8 +18,9 @@ class InfoToMusic:
         fh.setFormatter(formatter)
         self.logger.addHandler(fh)
 
-        #self.textProc = TextProcessing()
-        #self.imgProc = ImageProcessing()
+        #self.textProc = TextProcessing(_textProcModels)
+        #self.imgProc = ImageProcessing(_imageProcModels)
+
         self.userImage = []
         self.userText = ''
         self.imgFilePath = ''

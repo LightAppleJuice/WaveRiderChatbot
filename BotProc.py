@@ -31,12 +31,18 @@ class MusicBot:
         self.config = settings()
         self.bot = telebot.TeleBot(self.config.bot_token)
         self.users = self.read_users(self.config.users_name)
+
         #self.users_id = self.read_users(self.config.users_token)
         self.link = "https://oauth.vk.com/authorize?\
         client_id= %s&display=mobile&scope=wall,offline,audio,photos&response_type=token&v=5.45" % self.config.id_vkapi
         self.imgPath = 'C:\ChatBot\WaveRiderChatbot\photos\userPhoto'#'/home/andrew/Projects/WaveRiderChatbot/'
         self.mp3Path = '/home/andrew/Projects/WaveRiderChatbot/music/'
         self.infoProcessors = {}
+
+        # Loading models
+        # TODO
+        self.textProcModels = []
+        self.imageProcModels = []
 
         # Logger initialization
         self.logger = logging.getLogger('BotLogger')
@@ -46,6 +52,8 @@ class MusicBot:
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         fh.setFormatter(formatter)
         self.logger.addHandler(fh)
+        rs = RequestSender()
+        self.allLyrics = rs.getAllLyricsByStyles(rs.getAllStyles())
 
         # Bot messages
         @self.bot.message_handler(commands=['start'])
@@ -119,7 +127,7 @@ class MusicBot:
                 # Create new InfoToMusic for new chat_id
                 self.logger.info('Creating new InfoToMusic for new chat_id')
                 if message.chat.id not in self.infoProcessors.keys():
-                    self.infoProcessors[message.chat.id] = InfoToMusic()
+                    self.infoProcessors[message.chat.id] = InfoToMusic(self.textProcModels, self.imageProcModels)
 
                 self.infoProcessors[message.chat.id].userText = text
                 self.infoProcessors[message.chat.id].process()
@@ -143,7 +151,7 @@ class MusicBot:
             # Create new InfoToMusic for new chat_id
             self.logger.info('Creating new InfoToMusic for new chat_id')
             if message.chat.id not in self.infoProcessors.keys():
-                self.infoProcessors[message.chat.id] = InfoToMusic()
+                self.infoProcessors[message.chat.id] = InfoToMusic(self.textProcModels, self.imageProcModels)
 
             # Saving image
             newImgPath = os.path.join(self.imgPath, str(message.chat.id))
