@@ -55,10 +55,10 @@ class MusicBot:
         rs = RequestSender.RequestSender()
         self.allLyrics = rs.getAllLyricsByStyles(rs.getAllStyles())
         self.logger.info('Translating all lyrics...')
-        for currSongId in self.allLyrics.keys():
-            song_name_translated = self.textModels.preprocess_sentence(self.allLyrics[currSongId][0])
-            song_text_translated = self.textModels.preprocess_sentence(self.allLyrics[currSongId][1])
-            self.allLyrics[currSongId] = song_name_translated, song_text_translated
+        # for currSongId in self.allLyrics.keys():  # preprocessing will be done in text_dict_to_vec_dict
+        #     song_name_translated = self.textModels.preprocess_sentence(self.allLyrics[currSongId][0])
+        #     song_text_translated = self.textModels.preprocess_sentence(self.allLyrics[currSongId][1])
+        #     self.allLyrics[currSongId] = song_name_translated, song_text_translated
 
         self.logger.info('Transform all lyrics to vectors...')
         textProp = TextProcessing(self.textModels)
@@ -121,6 +121,10 @@ class MusicBot:
                                                'Отправь мне фотографию или текст.', reply_markup=self.generate_markup())
             elif u"Хочу еще" == message.text:
                 self.logger.info('From user: One more request.')
+                # TODO: if the sorted_songs_list in self.infoProcessors[message.chat.id] is empty?
+                # Send song
+                song, file_mp3 = self.infoProcessors[message.chat.id].get_song()
+                self.send_music(message.chat.id, file_mp3, song['track_name'])
             elif u"Отмена" == message.text:
                 self.logger.info('From user: Cancel request.')
                 self.bot.send_message(chat_id=message.chat.id,
@@ -143,7 +147,13 @@ class MusicBot:
                     self.infoProcessors[message.chat.id] = InfoToMusic(self.textProcModels, self.imageProcModels)
 
                 self.infoProcessors[message.chat.id].userText = text
+                if len(self.infoProcessors[message.chat.id].relevantSongs) == 0:
+                    self.infoProcessors[message.chat.id].relevantSongs = self.allLyrics
                 self.infoProcessors[message.chat.id].process()
+
+                # Send song
+                song, file_mp3 = self.infoProcessors[message.chat.id].get_song()
+                self.send_music(message.chat.id, file_mp3, song['track_name'])
 
         @self.bot.message_handler(func=lambda message: True, content_types=['photo'])
         def get_image(message):

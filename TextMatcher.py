@@ -229,7 +229,6 @@ class TextProcessing:
         return
 
     def calc_scores(self, text_to_cmp, list_of_texts):
-        # TODO: обрабатывать list_of_vect
         vec_to_cmp = self.text_to_vec(text_to_cmp)
         vec_to_cmp = np.reshape(vec_to_cmp, [1, len(vec_to_cmp)])
         list_of_vecs = []
@@ -245,9 +244,23 @@ class TextProcessing:
         print "multiplied"
         return scores
 
+    def calc_scores_vecs(self, text_to_cmp, list_of_vecs):
+        # TODO: обрабатывать list_of_vect
+        vec_to_cmp = self.text_to_vec(text_to_cmp)
+        vec_to_cmp = np.reshape(vec_to_cmp, [1, len(vec_to_cmp)])
+        matrix_to_cmp = np.array(list_of_vecs)
+        scores = 1 - cdist(vec_to_cmp, matrix_to_cmp, metric='cosine')  # similarity scores!!!
+        print "multiplied"
+        return scores
+
     def calc_songs_scores(self, text_from_user, songs_titles, songs_lyrics):
         title_scores = self.calc_scores(text_from_user, songs_titles)
         lyrics_scores = self.calc_scores(text_from_user, songs_lyrics)
+        return 0.25 * title_scores + 0.75 * lyrics_scores
+
+    def calc_songs_scores_vecs(self, text_from_user, songs_titles_vecs, songs_lyrics_vecs):
+        title_scores = self.calc_scores_vecs(text_from_user, songs_titles_vecs)
+        lyrics_scores = self.calc_scores_vecs(text_from_user, songs_lyrics_vecs)
         return 0.25 * title_scores + 0.75 * lyrics_scores
 
     def resort_songs_by_lyrics_and_title(self, text_from_user, dict_with_songs):
@@ -261,9 +274,25 @@ class TextProcessing:
         songs_lyrics = [dict_with_songs[c_id][1] for c_id in songs_ids]
         scores = self.calc_songs_scores(text_from_user, songs_titles, songs_lyrics)  # similarity scores!!!
         sorted_ids = np.argsort(scores).flatten()[::-1]
-        print "sorted"
+        # print "sorted"
         # print np.shape(sorted_ids)
         return [songs_ids[c_id] for c_id in sorted_ids]
+
+    def resort_songs_by_vecs(self, text_from_user, dict_with_vecs_of_songs):
+        """
+        :param text_from_user: text of the post on vk
+        :param dict_with_vecs_of_songs: keys -- songs ids, values (vec of song_title, vec of song_lyrics)
+        :return: resorted
+        """
+        songs_ids = list(dict_with_vecs_of_songs.keys())
+        songs_titles_vecs = [dict_with_vecs_of_songs[c_id][0] for c_id in songs_ids]
+        songs_lyrics_vecs = [dict_with_vecs_of_songs[c_id][1] for c_id in songs_ids]
+        scores = self.calc_songs_scores_vecs(text_from_user, songs_titles_vecs, songs_lyrics_vecs)  # similarity scores!!!
+        sorted_ids = np.argsort(scores).flatten()[::-1]
+        # print "sorted"
+        # print np.shape(sorted_ids)
+        return [songs_ids[c_id] for c_id in sorted_ids]
+
 
 
 def load_songs_with_titles(list_songs_files):

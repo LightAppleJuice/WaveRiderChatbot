@@ -6,7 +6,7 @@ from settings import settings
 import os
 import numpy as np
 import urllib2
-#import TextProcessing
+from TextMatcher import TextProcessing
 
 
 class InfoToMusic:
@@ -25,7 +25,7 @@ class InfoToMusic:
         self.logger.addHandler(fh)
 
         self.image_processor = _image_processor
-        #self.textProc = TextProcessing(_textProcModels)
+        self.textProc = TextProcessing(_textProcModels)
 
         self.userImage = None
         self.userText = None
@@ -47,6 +47,7 @@ class InfoToMusic:
             os.mkdir(self.userSongFilePath)
 
         self.relevantSongs = {}
+        self.sorted_songs_ids = []
 
     def save_photo(self, photo_file):
         with open(self.imgFileName, 'wb') as f:
@@ -68,13 +69,20 @@ class InfoToMusic:
         styles_prob = self.image_processor.process_styles(self.imgFileName)
         target_styles = self.request_sender.parseVector(styles_prob)
         self.relevantSongs = self.request_sender.sendRequest(target_styles, batch_size, 2)
+        # convert relevant dict to list of songs
+        self.sorted_songs_ids = np.random.permutation(self.relevantSongs.keys())
 
     def process_text(self):
         self.logger.info('Process users text.')
+        if self.userImage:  # dict of songs that we get from process_ing is not preprocessed=converted to vecs
+            self.sorted_songs_ids = self.textProc.resort_songs_by_lyrics_and_title(self.userText, self.relevantSongs)
+        else:  # dict of all songs has already been converted to vecs
+            self.sorted_songs_ids = self.textProc.resort_songs_by_vecs(self.userText, self.relevantSongs)
 
     def get_song(self):
-        random_key = np.random.permutation(self.relevantSongs.keys())[0]
-        id_song = self.relevantSongs[random_key]
+        # random_key = np.random.permutation(self.relevantSongs.keys())[0]
+        # id_song = self.relevantSongs[random_key]
+        id_song = self.sorted_songs_ids[0]
         song = self.request_sender.getSong(id_song)
 
         file_mp3_name = os.path.join(self.userSongFilePath, '%s.mp3' % id_song)
@@ -82,6 +90,7 @@ class InfoToMusic:
             f.write(urllib2.urlopen('http://f.muzis.ru/' + song['file_mp3']).read())
 
         del self.relevantSongs[id_song]
+        del self.sorted_songs_ids[0]
 
         return song, file_mp3_name
 
