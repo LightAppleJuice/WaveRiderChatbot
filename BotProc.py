@@ -3,7 +3,7 @@
 
 # Main Bot Class
 
-import json  #Представляет словарь в строку
+import json  # Представляет словарь в строку
 import os  # Для проверки на существование файла
 import requests  # Для осуществления запросов
 import urllib  # Для загрузки картинки с сервера
@@ -27,6 +27,7 @@ from image_processing import ImageProcessor
 from TextMatcher import TextModels
 from TextMatcher import TextProcessing
 
+
 class MusicBot:
     def __init__(self):
         # Bot initialization
@@ -34,10 +35,10 @@ class MusicBot:
         self.bot = telebot.TeleBot(self.config.bot_token)
         self.users = self.read_users(self.config.users_name)
 
-        #self.users_id = self.read_users(self.config.users_token)
+        # self.users_id = self.read_users(self.config.users_token)
         self.link = "https://oauth.vk.com/authorize?\
         client_id= %s&display=mobile&scope=wall,offline,audio,photos&response_type=token&v=5.45" % self.config.id_vkapi
-        self.imgPath = 'C:\ChatBot\WaveRiderChatbot\photos\userPhoto'#'/home/andrew/Projects/WaveRiderChatbot/'
+        self.imgPath = 'C:\ChatBot\WaveRiderChatbot\photos\userPhoto'  # '/home/andrew/Projects/WaveRiderChatbot/'
         self.mp3Path = '/home/andrew/Projects/WaveRiderChatbot/music/'
         self.infoProcessors = {}
 
@@ -52,8 +53,8 @@ class MusicBot:
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         fh.setFormatter(formatter)
         self.logger.addHandler(fh)
-        rs = RequestSender.RequestSender()
-        self.allLyrics = rs.getAllLyricsByStyles(rs.getAllStyles())
+        self.rs = RequestSender.RequestSender()
+        self.allLyrics = self.rs.getAllLyricsByStyles(self.rs.getAllStyles())
         self.logger.info('Translating all lyrics...')
         # for currSongId in self.allLyrics.keys():  # preprocessing will be done in text_dict_to_vec_dict
         #     song_name_translated = self.textModels.preprocess_sentence(self.allLyrics[currSongId][0])
@@ -63,10 +64,7 @@ class MusicBot:
         self.logger.info('Transform all lyrics to vectors...')
         textProp = TextProcessing(self.textModels)
         textProp.text_dict_to_vec_dict(self.allLyrics)
-        return
-
-
-
+        # return
 
         # Bot messages
         @self.bot.message_handler(commands=['start'])
@@ -96,10 +94,10 @@ class MusicBot:
                     url_button = telebot.types.InlineKeyboardButton(text="Перейти в VK", url=self.link)
                     keyboard.add(url_button)
                     self.bot.send_message(chat_id=message.chat.id,
-                                     text='Прости {0}, но я не смогу обновить твою стену, '
-                                          'пока ты не пришлешь мне текст из адресной строки, '
-                                          'после перехода по ссылке:'
-                                     .format('\xF0\x9F\x98\x94'), reply_markup=keyboard)
+                                          text='Прости {0}, но я не смогу обновить твою стену, '
+                                               'пока ты не пришлешь мне текст из адресной строки, '
+                                               'после перехода по ссылке:'
+                                          .format('\xF0\x9F\x98\x94'), reply_markup=keyboard)
                 else:
                     usersClass.post(pathToMusic=self.music_name, pathToImage=self.photo_name, text=self.text)
                     self.bot.send_message(chat_id=message.chat.id,
@@ -133,7 +131,7 @@ class MusicBot:
                                       reply_markup=telebot.types.ReplyKeyboardHide())
 
                 # TODO: delete saved images?
-                self.infoProcessors[message.chat.id].clearAll()
+                self.infoProcessors[message.chat.id].clear_all()
                 del self.infoProcessors[message.chat.id]
                 self.logger.info('All data for id ' + str(message.chat.id) + ' were cleared.')
 
@@ -145,6 +143,8 @@ class MusicBot:
                 self.logger.info('Creating new InfoToMusic for new chat_id')
                 if message.chat.id not in self.infoProcessors.keys():
                     self.infoProcessors[message.chat.id] = InfoToMusic(self.textProcModels, self.imageProcModels)
+                elif self.infoProcessors[message.chat.id].is_both_modalities():
+                    self.infoProcessors[message.chat.id].clear_all()
 
                 self.infoProcessors[message.chat.id].userText = text
                 if len(self.infoProcessors[message.chat.id].relevantSongs) == 0:
@@ -167,12 +167,15 @@ class MusicBot:
             photo_ind = np.argmax(height_list)
 
             file_info = self.bot.get_file(message.photo[photo_ind].file_id)
-            photo_file = requests.get('https://api.telegram.org/file/bot{0}/{1}'.format(self.config.bot_token, file_info.file_path))
+            photo_file = requests.get(
+                'https://api.telegram.org/file/bot{0}/{1}'.format(self.config.bot_token, file_info.file_path))
 
             # Create new InfoToMusic for new chat_id
             self.logger.info('Creating new InfoToMusic for new chat_id')
             if message.chat.id not in self.infoProcessors.keys():
-                self.infoProcessors[message.chat.id] = InfoToMusic(self.textProcModels, self.image_processor)
+                self.infoProcessors[message.chat.id] = InfoToMusic(self.rs, self.allLyrics, self.textProcModels, self.image_processor)
+            elif self.infoProcessors[message.chat.id].is_both_modalities():
+                self.infoProcessors[message.chat.id].clear_all()
 
             # Saving image
             self.infoProcessors[message.chat.id].save_photo(photo_file)

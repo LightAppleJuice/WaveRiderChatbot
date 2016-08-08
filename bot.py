@@ -395,7 +395,7 @@ def get_image(message):
             audio = open(fileMP3, 'rb')
 
             temp = bot.send_audio(message.chat.id, audio, title='%s' % (song['track_name']),
-             timeout = 1000, reply_markup = generate_markup() ) # reply_to_message_id=message.message_id) #, reply_markup=markup)
+            timeout = 1000, reply_markup = generate_markup() ) # reply_to_message_id=message.message_id) #, reply_markup=markup)
             audio.close()
         else:
             print "y"

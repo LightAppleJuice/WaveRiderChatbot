@@ -9,7 +9,7 @@ STYLE_PRETRAINED = os.path.join('..', 'wave_rider_bot_models', 'cnn' 'snapshot_i
 STYLE_MEAN = os.path.join('..', 'wave_rider_bot_models', 'cnn' 'mean.binaryproto')
 
 
-class PhotoStylesNet(caffe.Net):
+class PredictNet(caffe.Net):
     def __init__(self, model_file, pretrained_file, mean_file=None, channel_swap=[2, 1, 0]):
         caffe.Net.__init__(self, model_file, pretrained_file, caffe.TEST)
 
@@ -41,9 +41,8 @@ class PhotoStylesNet(caffe.Net):
 
 class ImageProcessor:
     def __init__(self):
-        self.style_net = PhotoStylesNet(STYLE_MODEL, STYLE_PRETRAINED, STYLE_MEAN)
+        self.style_net = PredictNet(STYLE_MODEL, STYLE_PRETRAINED, STYLE_MEAN)
 
-    def process_styles(self, img_fname):
-        img = np.array(Image.open(img_fname))
+    def process_styles(self, img):
         styles_prob = self.style_net.predict([img])
         return styles_prob

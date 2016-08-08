@@ -7,6 +7,8 @@ import os
 import numpy as np
 import urllib2
 from TextMatcher import TextProcessing
+from PIL import Image
+import shutil
 
 
 class InfoToMusic:
@@ -28,6 +30,8 @@ class InfoToMusic:
         self.textProc = TextProcessing(_textProcModels)
 
         self.userImage = None
+        self.is_need_process_image = False
+
         self.userText = None
 
         data_path = os.path.join('..', 'wave_rider_bot_data')
@@ -49,24 +53,28 @@ class InfoToMusic:
         self.relevantSongs = {}
         self.sorted_songs_ids = []
 
+    def is_both_modalities(self):
+        return self.userImage and self.userText
+
     def save_photo(self, photo_file):
         with open(self.imgFileName, 'wb') as f:
             f.write(photo_file.content)
-        self.userImage = True
+        self.userImage = np.array(Image.open(self.imgFileName))
+        self.is_need_process_image = True
         self.logger.info('Image saved: ' + self.imgFileName)
 
     def process(self):
-        if self.userImage:
+        if self.is_need_process_image:
             self.process_img()
-            self.userImage = False
-        elif self.userText:
+            self.is_need_process_image = False
+        if self.userText:
             self.process_text()
 
     def process_img(self):
         batch_size = 200
 
         self.logger.info('Process users image.')
-        styles_prob = self.image_processor.process_styles(self.imgFileName)
+        styles_prob = self.image_processor.process_styles(self.userImage)
         target_styles = self.request_sender.parseVector(styles_prob)
         self.relevantSongs = self.request_sender.sendRequest(target_styles, batch_size, 2)
         # convert relevant dict to list of songs
@@ -74,7 +82,7 @@ class InfoToMusic:
 
     def process_text(self):
         self.logger.info('Process users text.')
-        if self.userImage:  # dict of songs that we get from process_ing is not preprocessed=converted to vecs
+        if self.userImage:  # dict of songs that we get from process_img is not preprocessed=converted to vecs
             self.sorted_songs_ids = self.textProc.resort_songs_by_lyrics_and_title(self.userText, self.relevantSongs)
         else:  # dict of all songs has already been converted to vecs
             self.sorted_songs_ids = self.textProc.resort_songs_by_vecs(self.userText, self.relevantSongs)
@@ -94,8 +102,15 @@ class InfoToMusic:
 
         return song, file_mp3_name
 
-    def clearAll(self):
-        self.userImage = []
-        self.userText = ''
-        self.songFilePath = ''
+    def clear_all(self):
+        self.userImage = None
+        self.is_need_process_image = False
+
+        self.userText = None
+
+        self.relevantSongs = {}
+        self.sorted_songs_ids = []
+
+        shutil.rmtree(self.userSongFilePath)
+        os.mkdir(self.userSongFilePath)
 
