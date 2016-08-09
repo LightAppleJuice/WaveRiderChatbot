@@ -1,12 +1,5 @@
 import numpy as np
 import caffe
-import os
-from PIL import Image
-
-
-STYLE_MODEL = os.path.join('..', 'wave_rider_bot_models', 'cnn' 'deploy.prototxt')
-STYLE_PRETRAINED = os.path.join('..', 'wave_rider_bot_models', 'cnn' 'snapshot_iter_14940.caffemodel')
-STYLE_MEAN = os.path.join('..', 'wave_rider_bot_models', 'cnn' 'mean.binaryproto')
 
 
 class PredictNet(caffe.Net):
@@ -18,12 +11,14 @@ class PredictNet(caffe.Net):
         self.transformer = caffe.io.Transformer({in_: self.blobs[in_].data.shape})
         self.transformer.set_transpose(in_, (2, 0, 1))
         if mean_file is not None:
-            blob = caffe.proto.caffe_pb2.BlobProto()
-            data = open(mean_file, 'rb').read()
-            blob.ParseFromString(data)
-            arr = np.array(caffe.io.blobproto_to_array(blob))
-            out = arr[0]
-            self.transformer.set_mean('data', out)
+            # blob = caffe.proto.caffe_pb2.BlobProto()
+            # data = open(mean_file, 'rb').read()
+            # blob.ParseFromString(data)
+            # arr = np.array(caffe.io.blobproto_to_array(blob))
+            # out = arr[0]
+            # self.transformer.set_mean('data', out)
+
+            self.transformer.set_mean('data', np.load(mean_file))
         if channel_swap is not None:
             self.transformer.set_channel_swap(in_, channel_swap)
 
@@ -40,9 +35,10 @@ class PredictNet(caffe.Net):
 
 
 class ImageProcessor:
-    def __init__(self):
-        self.style_net = PredictNet(STYLE_MODEL, STYLE_PRETRAINED, STYLE_MEAN)
+    def __init__(self, style_model, style_pretrained, style_mean):
+        self.style_net = PredictNet(style_model, style_pretrained, style_mean)
 
+    # Style cnn
     def process_styles(self, img):
         styles_prob = self.style_net.predict([img])
         return styles_prob

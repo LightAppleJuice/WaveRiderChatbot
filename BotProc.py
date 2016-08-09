@@ -3,23 +3,13 @@
 
 # Main Bot Class
 
-import json  # Представляет словарь в строку
-import os  # Для проверки на существование файла
-import requests  # Для осуществления запросов
-import urllib  # Для загрузки картинки с сервера
-from io import BytesIO  # Для отправки картинки к пользователю
-import time  # Представляет время в читаемый формат
-import vk
+import json
+import os
 import numpy as np
-from PIL import Image
 import requests
-import TextMatcher
 import RequestSender
-import urllib2
-import random
 from settings import settings
 import telebot
-from re import findall
 import logging
 from InfoToMusic import InfoToMusic
 from poster import poster
@@ -38,12 +28,13 @@ class MusicBot:
         # self.users_id = self.read_users(self.config.users_token)
         self.link = "https://oauth.vk.com/authorize?\
         client_id= %s&display=mobile&scope=wall,offline,audio,photos&response_type=token&v=5.45" % self.config.id_vkapi
-        self.imgPath = 'C:\ChatBot\WaveRiderChatbot\photos\userPhoto'  # '/home/andrew/Projects/WaveRiderChatbot/'
-        self.mp3Path = '/home/andrew/Projects/WaveRiderChatbot/music/'
+        # self.imgPath = 'C:\ChatBot\WaveRiderChatbot\photos\userPhoto'  # '/home/andrew/Projects/WaveRiderChatbot/'
+        # self.mp3Path = '/home/andrew/Projects/WaveRiderChatbot/music/'
+
         self.infoProcessors = {}
 
-        self.image_processor = ImageProcessor()
-        self.textModels = TextModels(self.config.w2vec_model, self.config.w2vec_dict, self.config.eng_rus_dict)
+        self.image_processor = ImageProcessor(self.config.cnn_style_model, self.config.cnn_style_pretrained,
+                                              self.config.cnn_style_mean)
 
         # Logger initialization
         self.logger = logging.getLogger('BotLogger')
@@ -53,17 +44,21 @@ class MusicBot:
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         fh.setFormatter(formatter)
         self.logger.addHandler(fh)
+
         self.rs = RequestSender.RequestSender()
         self.allLyrics = self.rs.getAllLyricsByStyles(self.rs.getAllStyles())
-        self.logger.info('Translating all lyrics...')
+
+        # self.logger.info('Translating all lyrics...')
         # for currSongId in self.allLyrics.keys():  # preprocessing will be done in text_dict_to_vec_dict
         #     song_name_translated = self.textModels.preprocess_sentence(self.allLyrics[currSongId][0])
         #     song_text_translated = self.textModels.preprocess_sentence(self.allLyrics[currSongId][1])
         #     self.allLyrics[currSongId] = song_name_translated, song_text_translated
 
+        textModels = TextModels(self.config.w2vec_model, self.config.w2vec_dict, self.config.eng_rus_dict)
+
         self.logger.info('Transform all lyrics to vectors...')
-        textProp = TextProcessing(self.textModels)
-        textProp.text_dict_to_vec_dict(self.allLyrics)
+        self.text_processor = TextProcessing(textModels)
+        self.text_processor.text_dict_to_vec_dict(self.allLyrics)
         # return
 
         # Bot messages
@@ -84,11 +79,11 @@ class MusicBot:
 
         @self.bot.message_handler(func=lambda message: True, content_types=['text'])
         def parse_message(message):
-            users_id = self.read_users(self.config.users_token)
-            strToFind = 'https:.+access_token=(.+)\&expires_in=.+'
+            # users_id = self.read_users(self.config.users_token)
+            # strToFind = 'https:.+access_token=(.+)\&expires_in=.+'
 
             if u"Опубликовать в VK" == message.text:
-                self.logger.info('From user: VK Publication request.')
+                self.logger.info('User %s: VK Publication request' % message.chat.id)
                 if not usersClass.findUser(chatId=message.chat.id):
                     keyboard = telebot.types.InlineKeyboardMarkup()
                     url_button = telebot.types.InlineKeyboardButton(text="Перейти в VK", url=self.link)
@@ -99,12 +94,18 @@ class MusicBot:
                                                'после перехода по ссылке:'
                                           .format('\xF0\x9F\x98\x94'), reply_markup=keyboard)
                 else:
-                    usersClass.post(pathToMusic=self.music_name, pathToImage=self.photo_name, text=self.text)
+                    # usersClass.post(pathToMusic=self.music_name, pathToImage=self.photo_name, text=self.text)
+
+                    music_name = self.infoProcessors[message.chat.id].current_song_name
+                    photo_name = self.infoProcessors[message.chat.id].imgFileName
+                    text = self.infoProcessors[message.chat.id].userText
+
+                    usersClass.post(pathToMusic=music_name, pathToImage=photo_name, text=text)
                     self.bot.send_message(chat_id=message.chat.id,
                                           text='Отлично! Не будем останавливаться)\n'
                                                'Отправь мне фотографию или текст.', reply_markup=self.generate_markup())
             elif 'https' in message.text:
-                self.logger.info('From user: VK Authorization request.')
+                self.logger.info('User %s: VK Authorization request' % message.chat.id)
                 usersClass.addUser(message)
                 if not usersClass.findUser(message.chat.id):
                     self.bot.send_message(chat_id=message.chat.id,
@@ -113,51 +114,76 @@ class MusicBot:
                 else:
                     self.bot.send_message(chat_id=message.chat.id,
                                           text='Приветствую тебя, пользователь')
-                    usersClass.post(pathToMusic=self.music_name, pathToImage=self.photo_name, text=self.text)
+
+                    # usersClass.post(pathToMusic=self.music_name, pathToImage=self.photo_name, text=self.text)
+
+                    music_name = self.infoProcessors[message.chat.id].current_song_name
+                    photo_name = self.infoProcessors[message.chat.id].imgFileName
+                    text = self.infoProcessors[message.chat.id].userText
+
+                    usersClass.post(pathToMusic=music_name, pathToImage=photo_name, text=text)
                     self.bot.send_message(chat_id=message.chat.id,
                                           text='Отлично! Не будем останавливаться)\n'
                                                'Отправь мне фотографию или текст.', reply_markup=self.generate_markup())
             elif u"Хочу еще" == message.text:
-                self.logger.info('From user: One more request.')
-                # TODO: if the sorted_songs_list in self.infoProcessors[message.chat.id] is empty?
+                self.logger.info('User %s: One more song request' % message.chat.id)
+
+                if len(self.infoProcessors[message.chat.id].sorted_songs_ids) == 0:
+                    self.logger.info('User %s: No relevant songs' % message.chat.id)
+                    self.bot.send_message(chat_id=message.chat.id,
+                                          text='К сожалению, больше нет подходящей музыки. Может попробуем еще раз?\n'
+                                               'Отправь мне фотографию или текст.',
+                                          reply_markup=telebot.types.ReplyKeyboardHide())
+
                 # Send song
                 song, file_mp3 = self.infoProcessors[message.chat.id].get_song()
                 self.send_music(message.chat.id, file_mp3, song['track_name'])
             elif u"Отмена" == message.text:
-                self.logger.info('From user: Cancel request.')
+                self.logger.info('User %s: Cancel request' % message.chat.id)
                 self.bot.send_message(chat_id=message.chat.id,
                                       text='Прости, что не получилось. Может попробуем еще раз?\n'
                                            'Отправь мне фотографию или текст.',
                                       reply_markup=telebot.types.ReplyKeyboardHide())
 
-                # TODO: delete saved images?
-                self.infoProcessors[message.chat.id].clear_all()
+                self.infoProcessors[message.chat.id].delete_user_data()
                 del self.infoProcessors[message.chat.id]
-                self.logger.info('All data for id ' + str(message.chat.id) + ' were cleared.')
 
             else:
-                self.logger.info('From user: Text description')
                 text = message.text.encode("utf-8")
+                self.logger.info('User %s: Text description from user: %s' % (message.chat.id, text))
 
                 # Create new InfoToMusic for new chat_id
-                self.logger.info('Creating new InfoToMusic for new chat_id')
+                self.logger.info('User %s: Creating new InfoToMusic for user' % message.chat.id)
                 if message.chat.id not in self.infoProcessors.keys():
-                    self.infoProcessors[message.chat.id] = InfoToMusic(self.textProcModels, self.imageProcModels)
+                    self.infoProcessors[message.chat.id] = InfoToMusic(message.chat.id, self.rs, self.allLyrics,
+                                                                       self.text_processor, self.image_processor)
                 elif self.infoProcessors[message.chat.id].is_both_modalities():
                     self.infoProcessors[message.chat.id].clear_all()
 
                 self.infoProcessors[message.chat.id].userText = text
                 if len(self.infoProcessors[message.chat.id].relevantSongs) == 0:
                     self.infoProcessors[message.chat.id].relevantSongs = self.allLyrics
-                self.infoProcessors[message.chat.id].process()
 
-                # Send song
-                song, file_mp3 = self.infoProcessors[message.chat.id].get_song()
-                self.send_music(message.chat.id, file_mp3, song['track_name'])
+                try:
+                    self.infoProcessors[message.chat.id].process()
+
+                    # Send song
+                    song, file_mp3 = self.infoProcessors[message.chat.id].get_song()
+                    self.send_music(message.chat.id, file_mp3, song['track_name'])
+                except:
+                    self.logger.error('User %s: Catch exception in user text processing' % message.chat.id)
+                    self.bot.send_message(chat_id=message.chat.id,
+                                          text='Возникла ошибка при обработке текста. Может попробуем еще раз?\n'
+                                               'Отправь мне фотографию или текст.',
+                                          reply_markup=telebot.types.ReplyKeyboardHide())
+
+                    self.infoProcessors[message.chat.id].delete_user_data()
+                    del self.infoProcessors[message.chat.id]
+
 
         @self.bot.message_handler(func=lambda message: True, content_types=['photo'])
         def get_image(message):
-            self.logger.info('From user: Image')
+            self.logger.info('User %s: Image from user' % message.chat.id)
             self.bot.send_chat_action(message.chat.id, "upload_photo")
 
             # Get biggest photo
@@ -171,9 +197,10 @@ class MusicBot:
                 'https://api.telegram.org/file/bot{0}/{1}'.format(self.config.bot_token, file_info.file_path))
 
             # Create new InfoToMusic for new chat_id
-            self.logger.info('Creating new InfoToMusic for new chat_id')
+            self.logger.info('User %s: Creating new InfoToMusic for user' % message.chat.id)
             if message.chat.id not in self.infoProcessors.keys():
-                self.infoProcessors[message.chat.id] = InfoToMusic(self.rs, self.allLyrics, self.textProcModels, self.image_processor)
+                self.infoProcessors[message.chat.id] = InfoToMusic(message.chat.id, self.rs, self.allLyrics,
+                                                                   self.text_processor, self.image_processor)
             elif self.infoProcessors[message.chat.id].is_both_modalities():
                 self.infoProcessors[message.chat.id].clear_all()
 
@@ -181,25 +208,37 @@ class MusicBot:
             self.infoProcessors[message.chat.id].save_photo(photo_file)
 
             # Filling fields in appropriate InfoToMusic
-            self.infoProcessors[message.chat.id].process()
+            try:
+                self.infoProcessors[message.chat.id].process()
 
-            # Send song
-            song, file_mp3 = self.infoProcessors[message.chat.id].get_song()
-            self.send_music(message.chat.id, file_mp3, song['track_name'])
+                # Send song
+                song, file_mp3 = self.infoProcessors[message.chat.id].get_song()
+                self.send_music(message.chat.id, file_mp3, song['track_name'])
+            except:
+                self.logger.error('User %s: Catch exception in user image processing' % message.chat.id)
+                self.bot.send_message(chat_id=message.chat.id,
+                                      text='Возникла ошибка при обработке картинки. Может попробуем еще раз?\n'
+                                           'Отправь мне фотографию или текст.',
+                                      reply_markup=telebot.types.ReplyKeyboardHide())
+
+                self.infoProcessors[message.chat.id].delete_user_data()
+                del self.infoProcessors[message.chat.id]
 
     def send_music(self, user_id, file_mp3, title):
         self.bot.send_chat_action(user_id, 'upload_audio')
         with open(file_mp3, 'rb') as audio:
             self.bot.send_audio(user_id, audio, title='%s' % title, timeout=1000, reply_markup=self.generate_markup())
 
-    def generate_markup(self):
+    @staticmethod
+    def generate_markup():
         markup = telebot.types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
         markup.add('Опубликовать в VK')
         markup.add('Хочу еще')
         markup.add('Отмена')
         return markup
 
-    def read_users(self, pathToBase=''):
+    @staticmethod
+    def read_users(pathToBase=''):
         res = {}
         if os.path.isfile(pathToBase):
             with open(pathToBase, 'r') as base:
