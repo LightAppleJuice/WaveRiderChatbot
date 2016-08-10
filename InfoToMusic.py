@@ -54,9 +54,9 @@ class InfoToMusic:
         self.sorted_songs_ids = []
         self.current_song_name = None
 
-    # Checks if user add second photo or text
-    def is_both_modalities(self):
-        return self.userImage and self.userText
+    # # Checks if user add second photo or text
+    # def is_both_modalities(self):
+    #     return self.userImage and self.userText
 
     def save_photo(self, photo_file):
         with open(self.imgFileName, 'wb') as f:

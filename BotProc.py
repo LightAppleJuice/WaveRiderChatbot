@@ -157,7 +157,7 @@ class MusicBot:
                 if message.chat.id not in self.infoProcessors.keys():
                     self.infoProcessors[message.chat.id] = InfoToMusic(message.chat.id, self.rs, self.allLyrics,
                                                                        self.text_processor, self.image_processor)
-                elif self.infoProcessors[message.chat.id].is_both_modalities():
+                elif self.infoProcessors[message.chat.id].userText:
                     self.infoProcessors[message.chat.id].clear_all()
 
                 self.infoProcessors[message.chat.id].userText = text
@@ -201,7 +201,7 @@ class MusicBot:
             if message.chat.id not in self.infoProcessors.keys():
                 self.infoProcessors[message.chat.id] = InfoToMusic(message.chat.id, self.rs, self.allLyrics,
                                                                    self.text_processor, self.image_processor)
-            elif self.infoProcessors[message.chat.id].is_both_modalities():
+            elif self.infoProcessors[message.chat.id].userImage:
                 self.infoProcessors[message.chat.id].clear_all()
 
             # Saving image
