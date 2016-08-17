@@ -12,7 +12,7 @@ import shutil
 
 
 class InfoToMusic:
-    def __init__(self, user_id, request_sender, allLyrics, _textProcModels, _image_processor):
+    def __init__(self, user_id, request_sender, allLyrics, _text_processor, _image_processor):
         self.config = settings()
         self.user_id = user_id
 
@@ -27,7 +27,7 @@ class InfoToMusic:
         self.logger.addHandler(fh)
 
         self.image_processor = _image_processor
-        self.textProc = TextProcessing(_textProcModels)
+        self.textProc = _text_processor
 
         self.userImage = None
         self.is_need_process_image = False
