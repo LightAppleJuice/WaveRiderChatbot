@@ -84,7 +84,7 @@ class InfoToMusic:
         with open(self.config.styles_names) as style_f:
             for line in style_f:
                 styles.append(line.strip())
-        self.logger.info('User %s: cnn style: %s' % (self.user_id, styles[np.argmax(target_styles[0])]))
+        self.logger.info('User %s: cnn style: %s' % (self.user_id, styles[np.argmax(styles_prob[0])]))
 
         self.relevantSongs = self.request_sender.sendRequest(target_styles, batch_size, 2)
         # convert relevant dict to list of songs
