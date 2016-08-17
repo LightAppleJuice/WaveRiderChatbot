@@ -31,6 +31,7 @@ class InfoToMusic:
 
         self.userImage = None
         self.is_need_process_image = False
+        self.image_seen = False
 
         self.userText = None
 
@@ -70,6 +71,7 @@ class InfoToMusic:
         if self.is_need_process_image:
             self.process_img()
             self.is_need_process_image = False
+            self.image_seen = True
         if self.userText:
             self.process_text()
 
@@ -92,7 +94,7 @@ class InfoToMusic:
 
     def process_text(self):
         self.logger.info('User %s: Process text' % self.user_id)
-        if self.userImage:  # dict of songs that we get from process_img is not preprocessed=converted to vecs
+        if self.image_seen:  # dict of songs that we get from process_img is not preprocessed=converted to vecs
             self.sorted_songs_ids = self.textProc.resort_songs_by_lyrics_and_title(self.userText, self.relevantSongs)
         else:  # dict of all songs has already been converted to vecs
             self.sorted_songs_ids = self.textProc.resort_songs_by_vecs(self.userText, self.relevantSongs)
