@@ -88,7 +88,7 @@ class InfoToMusic:
 
         self.relevantSongs = self.request_sender.sendRequest(target_styles, batch_size, 2)
         # convert relevant dict to list of songs
-        self.sorted_songs_ids = np.random.permutation(self.relevantSongs.keys())
+        self.sorted_songs_ids = list(np.random.permutation(self.relevantSongs.keys()))
 
     def process_text(self):
         self.logger.info('User %s: Process text' % self.user_id)
