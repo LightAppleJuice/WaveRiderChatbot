@@ -144,9 +144,9 @@ class MusicBot:
                                       text='Прости, что не получилось. Может попробуем еще раз?\n'
                                            'Отправь мне фотографию или текст.',
                                       reply_markup=telebot.types.ReplyKeyboardHide())
-
-                self.infoProcessors[message.chat.id].delete_user_data()
-                del self.infoProcessors[message.chat.id]
+                if message.chat.id in self.infoProcessors.keys():
+                    self.infoProcessors[message.chat.id].delete_user_data()
+                    del self.infoProcessors[message.chat.id]
 
             else:
                 text = message.text.encode("utf-8")
