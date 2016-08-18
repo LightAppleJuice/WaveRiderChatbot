@@ -163,6 +163,7 @@ class MusicBot:
                     self.bot.send_message(chat_id=message.chat.id,
                                           text='Отлично! Начнем заново!', reply_markup=self.generate_markup())
                     self.infoProcessors[message.chat.id].clear_all()
+                    self.infoProcessors[message.chat.id].imgFileName = None
 
                 self.infoProcessors[message.chat.id].userText = text
                 if len(self.infoProcessors[message.chat.id].relevantSongs) == 0:
