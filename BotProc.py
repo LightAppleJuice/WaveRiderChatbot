@@ -127,17 +127,19 @@ class MusicBot:
                                                'Отправь мне фотографию или текст.', reply_markup=self.generate_markup())
             elif u"Хочу еще" == message.text:
                 self.logger.info('User %s: One more song request' % message.chat.id)
+                if message.chat.id in self.infoProcessors.keys():
+                    if len(self.infoProcessors[message.chat.id].sorted_songs_ids) == 0:
+                        self.logger.info('User %s: No relevant songs' % message.chat.id)
+                        self.bot.send_message(chat_id=message.chat.id,
+                                              text='К сожалению, больше нет подходящей музыки. Может попробуем еще раз?\n'
+                                                   'Отправь мне фотографию или текст.',
+                                              reply_markup=telebot.types.ReplyKeyboardHide())
 
-                if len(self.infoProcessors[message.chat.id].sorted_songs_ids) == 0:
-                    self.logger.info('User %s: No relevant songs' % message.chat.id)
+                    # Send song
                     self.bot.send_message(chat_id=message.chat.id,
-                                          text='К сожалению, больше нет подходящей музыки. Может попробуем еще раз?\n'
-                                               'Отправь мне фотографию или текст.',
-                                          reply_markup=telebot.types.ReplyKeyboardHide())
-
-                # Send song
-                song, file_mp3 = self.infoProcessors[message.chat.id].get_song()
-                self.send_music(message.chat.id, file_mp3, song['track_name'])
+                                          text='Один момент, уже подбираю новую песню.', reply_markup=self.generate_markup())
+                    song, file_mp3 = self.infoProcessors[message.chat.id].get_song()
+                    self.send_music(message.chat.id, file_mp3, song['track_name'])
             elif u"Отмена" == message.text:
                 self.logger.info('User %s: Cancel request' % message.chat.id)
                 self.bot.send_message(chat_id=message.chat.id,
@@ -158,6 +160,9 @@ class MusicBot:
                     self.infoProcessors[message.chat.id] = InfoToMusic(message.chat.id, self.rs, self.allLyrics,
                                                                        self.text_processor, self.image_processor)
                 elif self.infoProcessors[message.chat.id].userText:
+                    self.logger.info('User %s: Creating new post' % message.chat.id)
+                    self.bot.send_message(chat_id=message.chat.id,
+                                          text='Отлично! Начнем заново!', reply_markup=self.generate_markup())
                     self.infoProcessors[message.chat.id].clear_all()
 
                 self.infoProcessors[message.chat.id].userText = text
@@ -165,6 +170,8 @@ class MusicBot:
                     self.infoProcessors[message.chat.id].relevantSongs = self.allLyrics
 
                 try:
+                    self.bot.send_message(chat_id=message.chat.id,
+                                          text='Один момент, уже подбираю песню под введенный текст.', reply_markup=self.generate_markup())
                     self.infoProcessors[message.chat.id].process()
 
                     # Send song
@@ -176,7 +183,6 @@ class MusicBot:
                                           text='Возникла ошибка при обработке текста. Может попробуем еще раз?\n'
                                                'Отправь мне фотографию или текст.',
                                           reply_markup=telebot.types.ReplyKeyboardHide())
-
                     self.infoProcessors[message.chat.id].delete_user_data()
                     del self.infoProcessors[message.chat.id]
 
@@ -202,10 +208,14 @@ class MusicBot:
                 self.infoProcessors[message.chat.id] = InfoToMusic(message.chat.id, self.rs, self.allLyrics,
                                                                    self.text_processor, self.image_processor)
             elif self.infoProcessors[message.chat.id].image_seen:
+                self.bot.send_message(chat_id=message.chat.id,
+                                      text='Отлично! Начнем заново!', reply_markup=self.generate_markup())
                 self.infoProcessors[message.chat.id].clear_all()
 
             # Saving image
             self.infoProcessors[message.chat.id].save_photo(photo_file)
+            self.bot.send_message(chat_id=message.chat.id,
+                                  text='Один момент, уже подбираю песню под твою фотографию.', reply_markup=self.generate_markup())
 
             # Filling fields in appropriate InfoToMusic
             try:

@@ -123,12 +123,15 @@ class InfoToMusic:
         self.is_need_process_image = False
 
         self.userText = None
+        self.image_seen = False
+        self.current_song_name = None
 
         self.relevantSongs = {}
         self.sorted_songs_ids = []
 
         if os.path.isdir(self.userSongFilePath):
             shutil.rmtree(self.userSongFilePath)
+
         os.mkdir(self.userSongFilePath)
 
     def delete_user_data(self):
