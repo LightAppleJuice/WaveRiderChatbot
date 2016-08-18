@@ -33,7 +33,7 @@ class InfoToMusic:
         self.is_need_process_image = False
         self.image_seen = False
 
-        self.userText = None
+        self.userText = ''
 
         data_path = os.path.join('..', 'wave_rider_bot_data')
         if not os.path.isdir(data_path):
@@ -122,7 +122,7 @@ class InfoToMusic:
         self.userImage = None
         self.is_need_process_image = False
 
-        self.userText = None
+        self.userText = ''
         self.image_seen = False
         self.current_song_name = None
 

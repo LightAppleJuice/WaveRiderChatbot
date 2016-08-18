@@ -26,8 +26,7 @@ class MusicBot:
         self.users = self.read_users(self.config.users_name)
 
         # self.users_id = self.read_users(self.config.users_token)
-        self.link = "https://oauth.vk.com/authorize?\
-        client_id= %s&display=mobile&scope=wall,offline,audio,photos&response_type=token&v=5.45" % self.config.id_vkapi
+        self.link = r"https://oauth.vk.com/authorize?client_id={}&display=mobile&scope=wall,offline,audio,photos&response_type=token&v=5.45".format(self.config.id_vkapi)
         # self.imgPath = 'C:\ChatBot\WaveRiderChatbot\photos\userPhoto'  # '/home/andrew/Projects/WaveRiderChatbot/'
         # self.mp3Path = '/home/andrew/Projects/WaveRiderChatbot/music/'
 
@@ -113,7 +112,7 @@ class MusicBot:
                                                'Проверь, пожалуйста, скопированную строку и пришли мне ее еще раз')
                 else:
                     self.bot.send_message(chat_id=message.chat.id,
-                                          text='Приветствую тебя, пользователь')
+                                          text='Спасибо за авторизацию.')
 
                     # usersClass.post(pathToMusic=self.music_name, pathToImage=self.photo_name, text=self.text)
 
