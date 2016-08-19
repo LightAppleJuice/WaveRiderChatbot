@@ -233,15 +233,15 @@ class TextProcessing:
         vec_to_cmp = np.reshape(vec_to_cmp, [1, len(vec_to_cmp)])
         list_of_vecs = []
         for csn in range(len(list_of_texts)):
-            if csn % 100 == 0:
-                print csn
+            # if csn % 100 == 0:
+            #     print csn
             cur_text = list_of_texts[csn]
             list_of_vecs.append(self.text_to_vec(cur_text))
         # list_of_vecs = [self.text_to_vec(cur_text) for cur_text in list_of_texts]
-        print "translated"
+        # print "translated"
         matrix_to_cmp = np.array(list_of_vecs)
         scores = 1 - cdist(vec_to_cmp, matrix_to_cmp, metric='cosine')  # similarity scores!!!
-        print "multiplied"
+        # print "multiplied"
         return scores
 
     def calc_scores_vecs(self, text_to_cmp, list_of_vecs):
@@ -250,7 +250,7 @@ class TextProcessing:
         vec_to_cmp = np.reshape(vec_to_cmp, [1, len(vec_to_cmp)])
         matrix_to_cmp = np.array(list_of_vecs)
         scores = 1 - cdist(vec_to_cmp, matrix_to_cmp, metric='cosine')  # similarity scores!!!
-        print "multiplied"
+        # print "multiplied"
         return scores
 
     def calc_songs_scores(self, text_from_user, songs_titles, songs_lyrics):
@@ -338,7 +338,7 @@ def test_word2vec_scorer(list_song_text_files, list_test_phrases, matcher):
     test_phrs = load_phrs(list_test_phrases)
     with open(out_file, "w") as file_out:
         for cur_phr in test_phrs:
-            print cur_phr.decode("utf-8")
+            # print cur_phr.decode("utf-8")
             max_score = -1
             best_song = ""
             for c_song in song_texts.keys():
@@ -390,9 +390,9 @@ if __name__ == "__main__":
         s3 = "здравствуй а как дела"
         s4 = "пока"
         text_matcher = TextMatcher(path_to_w2v_model, path_to_w2v_dict, path_to_eng_rus_dict)
-        print text_matcher.calc_matching_score(s1, s2)
-        print text_matcher.calc_matching_score(s1, s3)
-        print text_matcher.calc_matching_score(s1, s4)
+        # print text_matcher.calc_matching_score(s1, s2)
+        # print text_matcher.calc_matching_score(s1, s3)
+        # print text_matcher.calc_matching_score(s1, s4)
 
         songs_files = "./nlp part/list_all_ru_songs.txt"
         test_phrs_files = "./nlp part/list_phrs.txt"
@@ -410,9 +410,9 @@ if __name__ == "__main__":
 
         songs_dict = load_songs_with_titles(songs_files)
         test_phrs = load_test_phrases(test_phrs_file)
-        for c_test_phr in test_phrs:
-            print c_test_phr.decode("utf-8")
-            print text_processer.resort_songs_by_lyrics_and_title(c_test_phr, songs_dict)[0:5]
+        # for c_test_phr in test_phrs:
+        #     print c_test_phr.decode("utf-8")
+        #     print text_processer.resort_songs_by_lyrics_and_title(c_test_phr, songs_dict)[0:5]
 
 
 

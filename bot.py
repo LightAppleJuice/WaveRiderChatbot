@@ -15,54 +15,54 @@ import RequestSender
 import urllib2
 
 
-class FeaturesNet(caffe.Net):
-    def __init__(self, model_file, pretrained_file, mean_file=None, channel_swap=[2, 1, 0]):
-        caffe.Net.__init__(self, model_file, pretrained_file, caffe.TEST)
-
-        # configure pre-processing
-        in_ = self.inputs[0]
-        self.transformer = caffe.io.Transformer({in_: self.blobs[in_].data.shape})
-        self.transformer.set_transpose(in_, (2, 0, 1))
-        if mean_file is not None:
-            blob = caffe.proto.caffe_pb2.BlobProto()
-            data = open(mean_file, 'rb').read()
-            blob.ParseFromString(data)
-            arr = np.array(caffe.io.blobproto_to_array(blob))
-            out = arr[0]
-            self.transformer.set_mean('data', out)
-        if channel_swap is not None:
-            self.transformer.set_channel_swap(in_, channel_swap)
-
-    def predict(self, image_list):
-        in_ = self.inputs[0]
-        caffe_in = np.zeros((len(image_list), image_list[0].shape[2]) + self.blobs[in_].data.shape[2:],
-                            dtype=np.float32)
-        for i, image in enumerate(image_list):
-            caffe_in[i] = self.transformer.preprocess(in_, image)
-        out = self.forward_all(**{in_: caffe_in})
-        predictions = out[self.outputs[0]]
-
-        return predictions
-
-
-model_file = 'image_proc_model/deploy.prototxt'
-pretrained = '../model/model.caffemodel'
-mean_file = 'image_proc_model/imagenet_mean.binaryproto'
-net = FeaturesNet(model_file, pretrained, mean_file=mean_file)
-
-path_to_w2v_model = "/home/andrew/Projects/model/cbow_ns300_fullrostelLK4.npy"
-path_to_w2v_dict = "/home/andrew/Projects/model/cbow_ns300_fullrostelLK4.dic"
-text_matcher = TextMatcher.TextMatcher(path_to_w2v_model, path_to_w2v_dict)
+# class FeaturesNet(caffe.Net):
+#     def __init__(self, model_file, pretrained_file, mean_file=None, channel_swap=[2, 1, 0]):
+#         caffe.Net.__init__(self, model_file, pretrained_file, caffe.TEST)
+#
+#         # configure pre-processing
+#         in_ = self.inputs[0]
+#         self.transformer = caffe.io.Transformer({in_: self.blobs[in_].data.shape})
+#         self.transformer.set_transpose(in_, (2, 0, 1))
+#         if mean_file is not None:
+#             blob = caffe.proto.caffe_pb2.BlobProto()
+#             data = open(mean_file, 'rb').read()
+#             blob.ParseFromString(data)
+#             arr = np.array(caffe.io.blobproto_to_array(blob))
+#             out = arr[0]
+#             self.transformer.set_mean('data', out)
+#         if channel_swap is not None:
+#             self.transformer.set_channel_swap(in_, channel_swap)
+#
+#     def predict(self, image_list):
+#         in_ = self.inputs[0]
+#         caffe_in = np.zeros((len(image_list), image_list[0].shape[2]) + self.blobs[in_].data.shape[2:],
+#                             dtype=np.float32)
+#         for i, image in enumerate(image_list):
+#             caffe_in[i] = self.transformer.preprocess(in_, image)
+#         out = self.forward_all(**{in_: caffe_in})
+#         predictions = out[self.outputs[0]]
+#
+#         return predictions
+#
+#
+# model_file = 'image_proc_model/deploy.prototxt'
+# pretrained = '../model/model.caffemodel'
+# mean_file = 'image_proc_model/imagenet_mean.binaryproto'
+# net = FeaturesNet(model_file, pretrained, mean_file=mean_file)
+#
+# path_to_w2v_model = "/home/andrew/Projects/model/cbow_ns300_fullrostelLK4.npy"
+# path_to_w2v_dict = "/home/andrew/Projects/model/cbow_ns300_fullrostelLK4.dic"
+# text_matcher = TextMatcher.TextMatcher(path_to_w2v_model, path_to_w2v_dict)
 
 request_sender = RequestSender.RequestSender()
 
 big_lyrics = {}
 styles =[32325,32486,4362,25357,20259,32501,32491,32454,32490,32487,32500,32494,
         32346,32370,32506,32510,20256,31662,32328, 25739]
-for style in styles:
-    lyrics = request_sender.sendRequest(style, 20)
-    if lyrics:
-        big_lyrics[style] = lyrics
+# for style in styles:
+#     lyrics = request_sender.sendRequest(style, 20)
+#     if lyrics:
+#         big_lyrics[style] = lyrics
 
 from settings import settings
 import telebot

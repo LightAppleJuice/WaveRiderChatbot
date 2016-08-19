@@ -212,7 +212,7 @@ class RequestSender:
 
     def getAllStyles(self):
         self.logger.info('Getting all using styles.')
-        styles = [];
+        styles = []
         for imgStyle in self.CNNstyles:
             styles.append(muzStyle for muzStyle in self.matching[imgStyle])
         return styles
@@ -241,7 +241,7 @@ class RequestSender:
             for id in range(1, 50000):
                 img = self.getSongPoster(str(id), allPostersNames)
                 if img:
-                    print str(id)
+                    # print str(id)
                     with open(path + "\\" + str(id) + '.jpg', 'wb') as img_file:
                         img_file.write(img)
         return
@@ -267,6 +267,7 @@ class RequestSender:
         self.logger.info('Getting all lyrics...')
         batchSize = 200
         allLyrics = self.sendRequest(styles, batchSize, 2)
+        # allLyrics = None
         return allLyrics
 
 

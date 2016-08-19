@@ -6,7 +6,6 @@ from settings import settings
 import os
 import numpy as np
 import urllib2
-from TextMatcher import TextProcessing
 from PIL import Image
 import shutil
 
@@ -54,12 +53,18 @@ class InfoToMusic:
         self.relevantSongs = {}
         self.sorted_songs_ids = []
         self.current_song_name = None
+        self.current_song_title = None
 
     # # Checks if user add second photo or text
     # def is_both_modalities(self):
     #     return self.userImage and self.userText
 
     def save_photo(self, photo_file):
+        if self.imgFileName is None:
+            data_path = os.path.join('..', 'wave_rider_bot_data')
+            photo_data_path = os.path.join(data_path, 'photos')
+            self.imgFileName = os.path.join(photo_data_path, '%s_photo.jpg' % self.user_id)
+
         with open(self.imgFileName, 'wb') as f:
             f.write(photo_file.content)
         self.userImage = np.array(Image.open(self.imgFileName))
@@ -108,6 +113,7 @@ class InfoToMusic:
             f.write(urllib2.urlopen('http://f.muzis.ru/' + song['file_mp3']).read())
 
         self.current_song_name = file_mp3_name
+        self.current_song_title = song['track_name']
 
         del self.relevantSongs[id_song]
         del self.sorted_songs_ids[0]
@@ -125,6 +131,7 @@ class InfoToMusic:
         self.userText = ''
         self.image_seen = False
         self.current_song_name = None
+        self.current_song_title = None
 
         self.relevantSongs = {}
         self.sorted_songs_ids = []
