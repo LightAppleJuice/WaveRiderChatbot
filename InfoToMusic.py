@@ -53,7 +53,6 @@ class InfoToMusic:
         self.relevantSongs = {}
         self.sorted_songs_ids = []
         self.current_song_name = None
-        self.current_song_title = None
 
     # # Checks if user add second photo or text
     # def is_both_modalities(self):
@@ -113,7 +112,6 @@ class InfoToMusic:
             f.write(urllib2.urlopen('http://f.muzis.ru/' + song['file_mp3']).read())
 
         self.current_song_name = file_mp3_name
-        self.current_song_title = song['track_name']
 
         del self.relevantSongs[id_song]
         del self.sorted_songs_ids[0]
@@ -131,7 +129,6 @@ class InfoToMusic:
         self.userText = ''
         self.image_seen = False
         self.current_song_name = None
-        self.current_song_title = None
 
         self.relevantSongs = {}
         self.sorted_songs_ids = []

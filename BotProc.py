@@ -16,6 +16,7 @@ from poster import poster
 from image_processing import ImageProcessor
 from TextMatcher import TextModels
 from TextMatcher import TextProcessing
+import traceback
 
 
 class MusicBot:
@@ -105,11 +106,10 @@ class MusicBot:
                     self.bot.send_message(chat_id=message.chat.id, text='Публикую твой пост в VK.')
 
                     music_name = self.infoProcessors[message.chat.id].current_song_name
-                    music_title = self.infoProcessors[message.chat.id].current_song_title
                     photo_name = self.infoProcessors[message.chat.id].imgFileName
                     text = self.infoProcessors[message.chat.id].userText
 
-                    usersClass.post(pathToMusic=music_name, music_title=music_title, pathToImage=photo_name, text=text)
+                    usersClass.post(pathToMusic=music_name, pathToImage=photo_name, text=text)
                     self.bot.send_message(chat_id=message.chat.id,
                                           text='Отлично! Не будем останавливаться)\n'
                                                'Отправь мне фотографию или текст.')
@@ -132,11 +132,10 @@ class MusicBot:
                     # usersClass.post(pathToMusic=self.music_name, pathToImage=self.photo_name, text=self.text)
 
                     music_name = self.infoProcessors[message.chat.id].current_song_name
-                    music_title = self.infoProcessors[message.chat.id].current_song_title
                     photo_name = self.infoProcessors[message.chat.id].imgFileName
                     text = self.infoProcessors[message.chat.id].userText
 
-                    usersClass.post(pathToMusic=music_name, pathToImage=photo_name, music_title=music_title, text=text)
+                    usersClass.post(pathToMusic=music_name, pathToImage=photo_name, text=text)
                     self.bot.send_message(chat_id=message.chat.id,
                                           text='Отлично! Не будем останавливаться)\n'
                                                'Отправь мне фотографию или текст.')
@@ -268,6 +267,9 @@ class MusicBot:
         with open(file_mp3, 'rb') as audio:
             self.bot.send_audio(user_id, audio, title='%s' % title, timeout=1000, reply_markup=self.generate_markup())
 
+    def get_logger(self):
+        return self.logger
+
     @staticmethod
     def generate_markup():
         markup = telebot.types.ReplyKeyboardMarkup(one_time_keyboard=True, resize_keyboard=True)
@@ -290,20 +292,13 @@ class MusicBot:
 
 if __name__ == '__main__':
     Bot = MusicBot()
+
+    bot_logger = Bot.get_logger()
+
     usersClass = poster()
 
-    Bot.process()
-
-    # main_logger = logging.getLogger('MainThreadLogger')
-    # main_logger.setLevel(logging.DEBUG)
-    # # fh = logging.FileHandler(self.config.log)
-    # # create formatter and add it to the handlers
-    # formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-    # # fh.setFormatter(formatter)
-    # # self.logger.addHandler(fh)
-
-    # while True:
-    #     try:
-    #         Bot.process()
-    #     except:
-    #         main_logger.error('Bot was crushed')
+    while True:
+        try:
+            Bot.process()
+        except Exception as e:
+            bot_logger.exception('Bot failed')

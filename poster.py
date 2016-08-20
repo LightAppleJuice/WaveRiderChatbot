@@ -40,7 +40,7 @@ class poster:
         except:
             self.token = None
 
-    def post(self, pathToMusic, music_title, **kwargs):
+    def post(self, pathToMusic, **kwargs):
         pathToMusic = pathToMusic
         pathToImage = kwargs.get('pathToImage', None)
         text = kwargs.get('text', '')
@@ -51,7 +51,6 @@ class poster:
         gid = self.config.id_vkapi
 
         audio = {'file': (split(pathToMusic)[1], open(pathToMusic, 'rb'))}
-        # audio = {'file': (music_title, open(pathToMusic, 'rb'))}
 
         # Получаем ссылку для загрузки изображений
         method_url = 'https://api.vk.com/method/audio.getUploadServer?'
