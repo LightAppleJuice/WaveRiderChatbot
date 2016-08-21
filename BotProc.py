@@ -112,6 +112,7 @@ class MusicBot:
                         text = self.infoProcessors[message.chat.id].userText
 
                         usersClass.post(pathToMusic=music_name, pathToImage=photo_name, text=text)
+                        self.infoProcessors[message.chat.id].clear_all()
                         self.bot.send_message(chat_id=message.chat.id,
                                               text='Отлично! Не будем останавливаться)\n'
                                                    'Отправь мне фотографию или текст.')
@@ -138,6 +139,7 @@ class MusicBot:
                         text = self.infoProcessors[message.chat.id].userText
 
                         usersClass.post(pathToMusic=music_name, pathToImage=photo_name, text=text)
+                        self.infoProcessors[message.chat.id].clear_all()
                         self.bot.send_message(chat_id=message.chat.id,
                                               text='Отлично! Не будем останавливаться)\n'
                                                    'Отправь мне фотографию или текст.')
@@ -187,7 +189,7 @@ class MusicBot:
                         self.bot.send_message(chat_id=message.chat.id,
                                               text='Отлично! Начнем заново!', reply_markup=self.generate_markup())
                         self.infoProcessors[message.chat.id].clear_all()
-                        self.infoProcessors[message.chat.id].imgFileName = None
+                        # self.infoProcessors[message.chat.id].imgFileName = None
 
                     self.infoProcessors[message.chat.id].userText = text
                     if len(self.infoProcessors[message.chat.id].relevantSongs) == 0:
