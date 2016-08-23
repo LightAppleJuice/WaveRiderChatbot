@@ -65,7 +65,9 @@ class poster:
 
         # Сохраняем фото на сервере и получаем id
         method_url = 'https://api.vk.com/method/audio.save?'
-        data = dict(access_token=self.token, gid=gid, audio=result['audio'], hash=result['hash'], server=result['server'])
+        artist, title = audio['file'][0].split(' - ')
+        data = dict(access_token=self.token, gid=gid, audio=result['audio'], hash=result['hash'],
+                    server=result['server'], artist=artist, title=title.strip(".mp3"))
         response = post(method_url, data)
         resultAid = loads(response.text)['response']['aid']
         result = loads(response.text)['response']['owner_id']
