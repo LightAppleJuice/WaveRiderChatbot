@@ -74,7 +74,7 @@ class MusicBot:
             self.bot.send_message(chat_id=message.chat.id,
                                   text='Привет, {0} {1}!\nТебе нужно что-то запостить?\nЯ подберу подходящую музыку {2} под пост и опубликую его для тебя в vk.\n'
                                        'Я могу работать как с текстом, так и с фотографиями. Просто отправь мне всё необходимое.\n\n'
-                                  .format(message.from_user.first_name, '\xE2\x9C\x8B', '\xF0\x9F\x8E\xB6'))
+                                  .format(message.from_user.first_name.encode('utf-8'), '\xE2\x9C\x8B', '\xF0\x9F\x8E\xB6'))
 
         @self.bot.message_handler(commands=['help'])
         def help(message):
