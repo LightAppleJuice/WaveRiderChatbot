@@ -26,9 +26,6 @@ class MusicBot:
         self.bot = telebot.TeleBot(self.config.bot_token)
         self.users = self.read_users(self.config.users_name)
 
-        self.link = r"https://oauth.vk.com/authorize?client_id={}&display=mobile&scope=wall,offline,audio,photos&response_type=token&v=5.45".format(
-            self.config.id_vkapi)
-
         self.infoProcessors = {}
 
         self.image_processor = ImageProcessor(self.config.cnn_style_model, self.config.cnn_style_pretrained,
@@ -94,17 +91,37 @@ class MusicBot:
                 if u"Опубликовать в VK" == message.text:
                     self.logger.info('User %s: VK Publication request' % message.chat.id)
                     if not usersClass.findUser(chatId=message.chat.id):
+                        link = r"https://oauth.vk.com/authorize?client_id={}&display=mobile&scope=wall,offline," \
+                                    r"audio,photos&redirect_uri={}&response_type=code&v=5.53&state={}".format(
+                            self.config.id_vkapi, self.config.set_code_URL, message.chat.id)
                         keyboard = telebot.types.InlineKeyboardMarkup()
-                        url_button = telebot.types.InlineKeyboardButton(text="Перейти в VK", url=self.link)
+                        url_button = telebot.types.InlineKeyboardButton(text="Перейти в VK", url=link)
                         keyboard.add(url_button)
                         self.bot.send_message(chat_id=message.chat.id,
                                               text='Прости {0}, но я не смогу обновить твою стену, '
                                                    'пока ты не пришлешь мне текст из адресной строки, '
                                                    'после перехода по ссылке:'
                                               .format('\xF0\x9F\x98\x94'), reply_markup=keyboard)
-                    else:
-                        # usersClass.post(pathToMusic=self.music_name, pathToImage=self.photo_name, text=self.text)
+                        usersClass.getToken(message.chat.id)
 
+                        if not usersClass.findUser(message.chat.id):
+                            self.bot.send_message(chat_id=message.chat.id,
+                                                  text='Не могу получить токен. Попробуй повторить публикацию')
+                        else:
+                            self.bot.send_message(chat_id=message.chat.id,
+                                                  text='Спасибо за авторизацию. Публикую твой пост в VK.')
+
+                            music_name = self.infoProcessors[message.chat.id].current_song_name
+                            photo_name = self.infoProcessors[message.chat.id].imgFileName
+                            text = self.infoProcessors[message.chat.id].userText
+
+                            usersClass.post(pathToMusic=music_name, pathToImage=photo_name, text=text)
+                            self.infoProcessors[message.chat.id].clear_all()
+                            self.bot.send_message(chat_id=message.chat.id,
+                                                  text='Отлично! Не будем останавливаться)\n'
+                                                       'Отправь мне фотографию или текст.')
+
+                    else:
                         self.bot.send_message(chat_id=message.chat.id, text='Публикую твой пост в VK.')
 
                         music_name = self.infoProcessors[message.chat.id].current_song_name
@@ -121,28 +138,6 @@ class MusicBot:
                     self.stat_log.info('Unique users: %d, Requests number: %d, VK publications: %d' % (
                         len(self.statistics['unique_users']), self.statistics['requests'], self.statistics['vk']))
 
-                elif 'https' in message.text:
-                    self.logger.info('User %s: VK Authorization request' % message.chat.id)
-                    usersClass.addUser(message)
-                    if not usersClass.findUser(message.chat.id):
-                        self.bot.send_message(chat_id=message.chat.id,
-                                              text='Не могу найти токен.\n '
-                                                   'Проверь, пожалуйста, скопированную строку и пришли мне ее еще раз')
-                    else:
-                        self.bot.send_message(chat_id=message.chat.id,
-                                              text='Спасибо за авторизацию. Публикую твой пост в VK.')
-
-                        # usersClass.post(pathToMusic=self.music_name, pathToImage=self.photo_name, text=self.text)
-
-                        music_name = self.infoProcessors[message.chat.id].current_song_name
-                        photo_name = self.infoProcessors[message.chat.id].imgFileName
-                        text = self.infoProcessors[message.chat.id].userText
-
-                        usersClass.post(pathToMusic=music_name, pathToImage=photo_name, text=text)
-                        self.infoProcessors[message.chat.id].clear_all()
-                        self.bot.send_message(chat_id=message.chat.id,
-                                              text='Отлично! Не будем останавливаться)\n'
-                                                   'Отправь мне фотографию или текст.')
                 elif u"Хочу еще" == message.text:
                     self.logger.info('User %s: One more song request' % message.chat.id)
                     if message.chat.id in self.infoProcessors.keys():

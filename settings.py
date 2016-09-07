@@ -14,6 +14,9 @@ class settings():
 
         self.bot_token = _parser.get('COMMON', 'bot_token')
         self.id_vkapi = _parser.get('COMMON', 'id_vkapi')
+        self.code_vkapi = _parser.get('COMMON', 'code_vkapi')
+        self.set_code_URL = _parser.get('COMMON', 'set_code_URL')
+        self.get_code_URL = _parser.get('COMMON', 'get_code_URL')
 
         self.database_name = _parser.get('DIRS', 'database_name')
         self.styles_codes = _parser.get('DIRS', 'styles_codes')
