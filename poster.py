@@ -29,14 +29,14 @@ class poster:
         data = dict(client_id=self.config.id_vkapi, client_secret=self.config.code_vkapi,
                     redirect_uri=self.config.set_code_URL, code=resultAid)
         response = requests.post(method_url, data)
-        resultAid = loads(response.text)['access_token']
+        if 200 == response.status_code:
+            resultAid = loads(response.text)['access_token']
 
-        sqlStr = "INSERT INTO users VALUES ({0}, '{1}')".format(chatId, resultAid)
-        with self.connection:
-            try:
+            sqlStr = "INSERT INTO users VALUES ({0}, '{1}')".format(chatId, resultAid)
+            sqlStrDel = "DELETE FROM users WHERE chatID={0}; ".format(chatId)
+            with self.connection:
+                self.cursor.execute(sqlStrDel) # удаление старого токена
                 self.cursor.execute(sqlStr)
-            except sqlite3.IntegrityError:
-                pass  # попытка повторной запист
 
     def findUser(self, chatId):
         with self.connection:
