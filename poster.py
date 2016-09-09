@@ -101,7 +101,7 @@ class poster:
             response = requests.post(method_url, data)
             resultPost.append(loads(response.text)['response'][0]['id'])
 
-        api.wall.post(message='{0} #Muzis #WaveRiderChatbot'.format(text), attachments=','.join(resultPost))
+        api.wall.post(message='{0} Made by #WaveRiderChatbot. Music from #Muzis'.format(text), attachments=','.join(resultPost))
 
     def __del__(self):
         self.cursor.close()
